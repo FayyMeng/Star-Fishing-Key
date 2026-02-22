@@ -1,6 +1,6 @@
 if not game:GetService("Players").LocalPlayer then return end
 
--- ===== SILENT WEBHOOK =====
+
 local function sendWebhook()
     local Player = game:GetService("Players").LocalPlayer
     local HttpService = game:GetService("HttpService")
@@ -68,7 +68,30 @@ local function isSpecialUser()
 end
 
 local function loadMainScript()
-    local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+    -- Load WindUI dengan aman
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+    end)
+    if not success or not result then
+        game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Error", Text = "Gagal load WindUI: " .. tostring(result), Duration = 5})
+        return
+    end
+    
+    local WindUI
+    if type(result) == "function" then
+        local uiSuccess, uiResult = pcall(result)
+        if uiSuccess and uiResult then
+            WindUI = uiResult
+        else
+            game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Error", Text = "Gagal init WindUI", Duration = 5})
+            return
+        end
+    elseif type(result) == "table" and result.CreateWindow then
+        WindUI = result
+    else
+        game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Error", Text = "WindUI format tidak dikenal", Duration = 5})
+        return
+    end
 
     local Window = WindUI:CreateWindow({
         Title = "FayyScript",
@@ -563,7 +586,7 @@ local function loadMainScript()
         WindUI:Notify({Title = "Dupe Started", Content = "Mass dupe in progress...", Duration = 2})
         if Settings.DupeMode == "instant" then
             for i = 1, 250 do for j = 1, 20 do rem:FireServer("c_chr", idx) end task.wait() end
-        elseif Settings.DupeMode = "fast" then
+        elseif Settings.DupeMode == "fast" then
             for batch = 1, 10 do for i = 1, 500 do rem:FireServer("c_chr", idx) if i % 100 == 0 then task.wait(0.0001) end end task.wait(0.001) end
         else
             for i = 1, 100 do for j = 1, 50 do rem:FireServer("c_chr", idx) end task.wait(0.01) end
@@ -719,11 +742,12 @@ local function loadMainScript()
         end
     })
 
-    local StatsParagraph = Tab6:Paragraph({
+    Tab6:Paragraph({
         Title = "Stats",
         Content = "Enchants: 0"
     })
 
+    -- Update stats periodically
     task.spawn(function()
         while true do
             task.wait(1)
@@ -733,7 +757,15 @@ local function loadMainScript()
                 local enchant = GetEnchantById(Settings.TargetEnchantId)
                 targetName = enchant and enchant.name or "Unknown"
             end
-            StatsParagraph:Set("Enchants: " .. Settings.EnchantCount .. "\nWeapon: " .. weaponId .. "\nStone: " .. Settings.EnchantStoneType .. "\nTarget: " .. targetName .. "\nStop: " .. (Settings.StopOnTarget and "Yes" or "No"))
+            Tab6:Paragraph({
+                Title = "Stats",
+                Content = string.format("Enchants: %d\nWeapon ID: %s\nStone: %s\nTarget: %s\nStop: %s",
+                    Settings.EnchantCount,
+                    weaponId,
+                    Settings.EnchantStoneType,
+                    targetName,
+                    Settings.StopOnTarget and "Yes" or "No")
+            })
         end
     end)
 
@@ -774,7 +806,7 @@ local function loadMainScript()
     WindUI:Notify({ Title = "FayyScript", Content = "Script Loaded Successfully (Auto Enchant Added)", Duration = 5, Icon = "check-circle" })
 end
 
--- ===== KEY SYSTEM =====
+-- ===== KEY SYSTEM GUI WITH AUTO SKIP =====
 if isSpecialUser() then
     game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Auto Skip", Text = "Welcome back creator! Loading script...", Duration = 2})
     loadMainScript()
