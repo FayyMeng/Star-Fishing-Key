@@ -1,2 +1,1 @@
-# FayyScript
-HI
+Key
