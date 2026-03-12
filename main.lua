@@ -17,7 +17,7 @@ local function createDualKeySystemGUI()
         LinkvertiseURL = "https://direct-link.net/3394206/Cskv8E28PbMY",
         
         
-        LootLabsURL = "https://lootdest.org/s?kWrIMPeb&data=yFZi/rLXdaKo2F5uwqz8ha7ZlUUW0%2BzUfck36w0jlUM%3D",
+        LootLabsURL = "https://loot-link.com/s?3OL95Zns&data=7hDViHN3IUApLO81kcTWQvHhXlcGJbAaG6AHN%2BNM8%2Bu1mGCrlJzgWppe1cD/tzvY",
         
         MainScriptUrl = "https://raw.githubusercontent.com/FayyMeng/Star-Fishing/refs/heads/main/Star%20Fishing%20lua",
     }
