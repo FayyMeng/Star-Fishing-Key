@@ -19,7 +19,7 @@ local function createDualKeySystemGUI()
         
         LootLabsURL = "https://lootdest.org/s?kWrIMPeb&data=yFZi/rLXdaKo2F5uwqz8ha7ZlUUW0%2BzUfck36w0jlUM%3D",
         
-        MainScriptUrl = "https://raw.githubusercontent.com/FayyMeng/FayyScript/refs/heads/main/FayyScript.lua",
+        MainScriptUrl = "https://raw.githubusercontent.com/FayyMeng/Star-Fishing/refs/heads/main/Star%20Fishing%20lua",
     }
     
     
