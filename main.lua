@@ -1,32 +1,53 @@
-local function createDualKeySystemGUI()
-    local ENCODED_KEY = {
-       349,448,391,442,310,415,445,412,415,430,409,310,391,463,463
-    }
-    
-    local function getValidKey()
-        local key = ""
-        for _, v in ipairs(ENCODED_KEY) do
-            local ascii = (v - 100) / 3
-            key = key .. string.char(ascii)
-        end
-        return key
-    end
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer or {UserId = 0}
 
+local ENCODED_KEY = {
+    349,448,391,442,310,415,445,412,415,430,409,250,244,250,262
+}
+
+local function getValidKey()
+    local key = ""
+    for _, v in ipairs(ENCODED_KEY) do
+        local ascii = (v - 100) / 3
+        key = key .. string.char(math.floor(ascii))
+    end
+    return key
+end
+
+local VALID_KEY = getValidKey()
+
+local KEY_FILE = "fayy_auth_" .. tostring(LocalPlayer.UserId) .. ".dat"
+
+local function isAlreadyAuthenticated()
+    if not isfile or not isfile(KEY_FILE) then return false end
+    local success, saved = pcall(readfile, KEY_FILE)
+    if not success or not saved or saved == "" then return false end
+    return saved:match("^%s*(.-)%s*$") == VALID_KEY
+end
+
+local function saveAuthentication(key)
+    if writefile then
+        pcall(function()
+            writefile(KEY_FILE, key)
+        end)
+    end
+end
+
+if isAlreadyAuthenticated() then
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/FayyMeng/Star-Fishing/refs/heads/main/Star%20Fishing%20lua", true))()
+    end)
+    return
+end
+
+local function createSingleKeySystemGUI()
     local CONFIG = {
-        LinkvertiseURL = "https://direct-link.net/3394206/Cskv8E28PbMY",
-        LootLabsURL = "https://loot-link.com/s?3OL95Zns&data=7hDViHN3IUApLO81kcTWQvHhXlcGJbAaG6AHN%2BNM8%2Bu1mGCrlJzgWppe1cD/tzvY",
+        LootLabsURL = "https://loot-link.com/s?LAjHExf0&data=7hDViHN3IUApLO81kcTWQkRXb6A%2B3GVKwgACTu5OaqqI757Wy5%2BiBiwU%2BVh7vv8R",
         MainScriptUrl = "https://raw.githubusercontent.com/FayyMeng/Star-Fishing/refs/heads/main/Star%20Fishing%20lua",
         DiscordURL = "https://discord.gg/Dz2BafGg7",
     }
-    
+   
     local COLORS = {
-        Linkvertise = {
-            Primary = Color3.fromRGB(255, 140, 0),
-            Secondary = Color3.fromRGB(255, 165, 0),
-            Text = Color3.fromRGB(255, 255, 255),
-            Desc = Color3.fromRGB(255, 235, 200),
-            BtnText = Color3.fromRGB(255, 140, 0),
-        },
         LootLabs = {
             Primary = Color3.fromRGB(75, 0, 130),
             Secondary = Color3.fromRGB(106, 90, 205),
@@ -42,18 +63,16 @@ local function createDualKeySystemGUI()
             BtnText = Color3.fromRGB(88, 101, 242),
         }
     }
-    
-    local VALID_KEY = getValidKey()
+   
     local isMobile = game:GetService("UserInputService").TouchEnabled
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "FayyDualKeyGUI"
+    ScreenGui.Name = "FayyKeyGUI"
     ScreenGui.Parent = game:GetService("CoreGui")
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-    -- ✅ UKURAN YANG LEBIH COMPACT UNTUK MOBILE
-    local guiWidth = isMobile and 320 or 520
-    local guiHeight = isMobile and 420 or 610
+    local guiWidth = isMobile and 320 or 460
+    local guiHeight = isMobile and 420 or 520
 
     local Container = Instance.new("Frame")
     Container.Size = UDim2.new(0, guiWidth, 0, guiHeight)
@@ -88,7 +107,6 @@ local function createDualKeySystemGUI()
     Corner.CornerRadius = UDim.new(0, isMobile and 12 or 16)
     Corner.Parent = Container
 
-    -- LEFT PANEL (SIDEBAR) - DIKECILKAN UNTUK MOBILE
     local LeftPanel = Instance.new("Frame")
     LeftPanel.Size = UDim2.new(0, isMobile and 50 or 80, 1, 0)
     LeftPanel.BackgroundColor3 = Color3.fromRGB(10, 20, 40)
@@ -166,14 +184,12 @@ local function createDualKeySystemGUI()
     Version.TextSize = isMobile and 8 or 10
     Version.Parent = LeftPanel
 
-    -- CONTENT AREA - LEBIH LEBAR UNTUK MOBILE
     local Content = Instance.new("Frame")
     Content.Size = UDim2.new(1, isMobile and -55 or -90, 1, -16)
     Content.Position = UDim2.new(0, isMobile and 55 or 85, 0, 8)
     Content.BackgroundTransparency = 1
     Content.Parent = Container
 
-    -- CLOSE BUTTON
     local CloseBtn = Instance.new("TextButton")
     CloseBtn.Size = UDim2.new(0, isMobile and 22 or 30, 0, isMobile and 22 or 30)
     CloseBtn.Position = UDim2.new(1, isMobile and -26 or -35, 0, -4)
@@ -193,9 +209,8 @@ local function createDualKeySystemGUI()
         ScreenGui:Destroy()
     end)
 
-    -- ANNOUNCEMENT BANNER - LEBIH PENDEK UNTUK MOBILE
     local AnnouncementFrame = Instance.new("Frame")
-    AnnouncementFrame.Size = UDim2.new(1, -8, 0, isMobile and 36 or 60)
+    AnnouncementFrame.Size = UDim2.new(1, -8, 0, isMobile and 36 or 50)
     AnnouncementFrame.Position = UDim2.new(0, 4, 0, 0)
     AnnouncementFrame.BackgroundColor3 = Color3.fromRGB(25, 35, 60)
     AnnouncementFrame.BackgroundTransparency = 0.1
@@ -206,269 +221,120 @@ local function createDualKeySystemGUI()
     AnnouncementCorner.CornerRadius = UDim.new(0, isMobile and 6 or 10)
     AnnouncementCorner.Parent = AnnouncementFrame
 
-    local AnnouncementGradient = Instance.new("UIGradient")
-    AnnouncementGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 55, 90)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 35, 65))
-    })
-    AnnouncementGradient.Rotation = 90
-    AnnouncementGradient.Parent = AnnouncementFrame
-
     local AnnouncementIcon = Instance.new("TextLabel")
-    AnnouncementIcon.Size = UDim2.new(0, isMobile and 20 or 30, 0, isMobile and 20 or 30)
-    AnnouncementIcon.Position = UDim2.new(0, isMobile and 6 or 12, 0.5, isMobile and -10 or -15)
+    AnnouncementIcon.Size = UDim2.new(0, isMobile and 20 or 26, 0, isMobile and 20 or 26)
+    AnnouncementIcon.Position = UDim2.new(0, isMobile and 8 or 12, 0.5, isMobile and -10 or -13)
     AnnouncementIcon.BackgroundTransparency = 1
     AnnouncementIcon.Text = "📢"
     AnnouncementIcon.TextColor3 = Color3.fromRGB(255, 220, 100)
     AnnouncementIcon.Font = Enum.Font.GothamBold
-    AnnouncementIcon.TextSize = isMobile and 14 or 22
+    AnnouncementIcon.TextSize = isMobile and 14 or 20
     AnnouncementIcon.Parent = AnnouncementFrame
 
     local AnnouncementText = Instance.new("TextLabel")
-    AnnouncementText.Size = UDim2.new(1, isMobile and -28 or -45, 1, -4)
-    AnnouncementText.Position = UDim2.new(0, isMobile and 28 or 45, 0, 2)
+    AnnouncementText.Size = UDim2.new(1, isMobile and -36 or -46, 1, -4)
+    AnnouncementText.Position = UDim2.new(0, isMobile and 36 or 46, 0, 2)
     AnnouncementText.BackgroundTransparency = 1
-    AnnouncementText.Text = "Choose your preferred method to get the key!"
+    AnnouncementText.Text = "Get key using the button below!"
     AnnouncementText.TextColor3 = Color3.fromRGB(255, 255, 255)
     AnnouncementText.Font = Enum.Font.Gotham
-    AnnouncementText.TextSize = isMobile and 8 or 11
+    AnnouncementText.TextSize = isMobile and 9 or 11
     AnnouncementText.TextWrapped = true
     AnnouncementText.TextXAlignment = Enum.TextXAlignment.Left
-    AnnouncementText.TextYAlignment = Enum.TextYAlignment.Center
     AnnouncementText.Parent = AnnouncementFrame
 
-    -- WELCOME TEXT - LEBIH COMPACT
     local Welcome = Instance.new("TextLabel")
-    Welcome.Size = UDim2.new(1, 0, 0, isMobile and 14 or 20)
-    Welcome.Position = UDim2.new(0, 0, 0, isMobile and 40 or 70)
+    Welcome.Size = UDim2.new(1, 0, 0, isMobile and 16 or 22)
+    Welcome.Position = UDim2.new(0, 0, 0, isMobile and 50 or 60)
     Welcome.BackgroundTransparency = 1
     Welcome.Text = "Get Key First,"
     Welcome.TextColor3 = Color3.fromRGB(80, 90, 110)
     Welcome.Font = Enum.Font.Gotham
-    Welcome.TextSize = isMobile and 9 or 13
+    Welcome.TextSize = isMobile and 10 or 14
     Welcome.TextXAlignment = Enum.TextXAlignment.Left
     Welcome.Parent = Content
 
-    -- USERNAME
     local UserName = Instance.new("TextLabel")
-    UserName.Size = UDim2.new(1, 0, 0, isMobile and 18 or 28)
-    UserName.Position = UDim2.new(0, 0, 0, isMobile and 52 or 88)
+    UserName.Size = UDim2.new(1, 0, 0, isMobile and 22 or 32)
+    UserName.Position = UDim2.new(0, 0, 0, isMobile and 68 or 85)
     UserName.BackgroundTransparency = 1
     UserName.Text = "Star Fishing"
     UserName.TextColor3 = Color3.fromRGB(30, 40, 60)
     UserName.Font = Enum.Font.GothamBold
-    UserName.TextSize = isMobile and 14 or 22
+    UserName.TextSize = isMobile and 16 or 24
     UserName.TextXAlignment = Enum.TextXAlignment.Left
     UserName.Parent = Content
 
-    -- METHOD 1: LINKVERTISE - UKURAN DIKECILKAN
-    local Method1Frame = Instance.new("Frame")
-    Method1Frame.Size = UDim2.new(1, -8, 0, isMobile and 55 or 85)
-    Method1Frame.Position = UDim2.new(0, 4, 0, isMobile and 72 or 120)
-    Method1Frame.BackgroundColor3 = COLORS.Linkvertise.Primary
-    Method1Frame.BackgroundTransparency = 0.1
-    Method1Frame.BorderSizePixel = 0
-    Method1Frame.Parent = Content
+    local MethodFrame = Instance.new("Frame")
+    MethodFrame.Size = UDim2.new(1, -8, 0, isMobile and 60 or 90)
+    MethodFrame.Position = UDim2.new(0, 4, 0, isMobile and 100 or 125)
+    MethodFrame.BackgroundColor3 = COLORS.LootLabs.Primary
+    MethodFrame.BackgroundTransparency = 0.1
+    MethodFrame.BorderSizePixel = 0
+    MethodFrame.Parent = Content
 
-    local Method1Corner = Instance.new("UICorner")
-    Method1Corner.CornerRadius = UDim.new(0, isMobile and 8 or 12)
-    Method1Corner.Parent = Method1Frame
+    local MethodCorner = Instance.new("UICorner")
+    MethodCorner.CornerRadius = UDim.new(0, isMobile and 8 or 12)
+    MethodCorner.Parent = MethodFrame
 
-    local Method1Gradient = Instance.new("UIGradient")
-    Method1Gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, COLORS.Linkvertise.Primary),
-        ColorSequenceKeypoint.new(1, COLORS.Linkvertise.Secondary)
-    })
-    Method1Gradient.Rotation = 135
-    Method1Gradient.Parent = Method1Frame
-
-    local Method1Icon = Instance.new("TextLabel")
-    Method1Icon.Size = UDim2.new(0, isMobile and 24 or 40, 0, isMobile and 24 or 40)
-    Method1Icon.Position = UDim2.new(0, isMobile and 8 or 15, 0.5, isMobile and -12 or -20)
-    Method1Icon.BackgroundTransparency = 1
-    Method1Icon.Text = "🔗"
-    Method1Icon.TextColor3 = COLORS.Linkvertise.Text
-    Method1Icon.Font = Enum.Font.GothamBold
-    Method1Icon.TextSize = isMobile and 16 or 28
-    Method1Icon.Parent = Method1Frame
-
-    local Method1Title = Instance.new("TextLabel")
-    Method1Title.Size = UDim2.new(1, isMobile and -90 or -65, 0, 18)
-    Method1Title.Position = UDim2.new(0, isMobile and 36 or 60, 0, isMobile and 8 or 12)
-    Method1Title.BackgroundTransparency = 1
-    Method1Title.Text = "Linkvertise"
-    Method1Title.TextColor3 = COLORS.Linkvertise.Text
-    Method1Title.Font = Enum.Font.GothamBold
-    Method1Title.TextSize = isMobile and 11 or 15
-    Method1Title.TextXAlignment = Enum.TextXAlignment.Left
-    Method1Title.Parent = Method1Frame
-
-    local Method1Desc = Instance.new("TextLabel")
-    Method1Desc.Size = UDim2.new(1, isMobile and -90 or -65, 0, 16)
-    Method1Desc.Position = UDim2.new(0, isMobile and 36 or 60, 0, isMobile and 24 or 35)
-    Method1Desc.BackgroundTransparency = 1
-    Method1Desc.Text = "Get key via Linkvertise"
-    Method1Desc.TextColor3 = COLORS.Linkvertise.Desc
-    Method1Desc.Font = Enum.Font.Gotham
-    Method1Desc.TextSize = isMobile and 8 or 11
-    Method1Desc.TextXAlignment = Enum.TextXAlignment.Left
-    Method1Desc.TextWrapped = true
-    Method1Desc.Parent = Method1Frame
-
-    local Method1Btn = Instance.new("TextButton")
-    Method1Btn.Size = UDim2.new(0, isMobile and 60 or 90, 0, isMobile and 26 or 32)
-    Method1Btn.Position = UDim2.new(1, isMobile and -68 or -105, 0.5, isMobile and -13 or -16)
-    Method1Btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Method1Btn.Text = "GET KEY"
-    Method1Btn.TextColor3 = COLORS.Linkvertise.BtnText
-    Method1Btn.Font = Enum.Font.GothamBold
-    Method1Btn.TextSize = isMobile and 9 or 12
-    Method1Btn.Parent = Method1Frame
-
-    local Method1BtnCorner = Instance.new("UICorner")
-    Method1BtnCorner.CornerRadius = UDim.new(0, isMobile and 6 or 8)
-    Method1BtnCorner.Parent = Method1Btn
-
-    -- METHOD 2: LOOTLABS - UKURAN DIKECILKAN
-    local Method2Frame = Instance.new("Frame")
-    Method2Frame.Size = UDim2.new(1, -8, 0, isMobile and 55 or 85)
-    Method2Frame.Position = UDim2.new(0, 4, 0, isMobile and 130 or 210)
-    Method2Frame.BackgroundColor3 = COLORS.LootLabs.Primary
-    Method2Frame.BackgroundTransparency = 0.1
-    Method2Frame.BorderSizePixel = 0
-    Method2Frame.Parent = Content
-
-    local Method2Corner = Instance.new("UICorner")
-    Method2Corner.CornerRadius = UDim.new(0, isMobile and 8 or 12)
-    Method2Corner.Parent = Method2Frame
-
-    local Method2Gradient = Instance.new("UIGradient")
-    Method2Gradient.Color = ColorSequence.new({
+    local MethodGradient = Instance.new("UIGradient")
+    MethodGradient.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, COLORS.LootLabs.Primary),
         ColorSequenceKeypoint.new(1, COLORS.LootLabs.Secondary)
     })
-    Method2Gradient.Rotation = 135
-    Method2Gradient.Parent = Method2Frame
+    MethodGradient.Rotation = 135
+    MethodGradient.Parent = MethodFrame
 
-    local Method2Icon = Instance.new("TextLabel")
-    Method2Icon.Size = UDim2.new(0, isMobile and 24 or 40, 0, isMobile and 24 or 40)
-    Method2Icon.Position = UDim2.new(0, isMobile and 8 or 15, 0.5, isMobile and -12 or -20)
-    Method2Icon.BackgroundTransparency = 1
-    Method2Icon.Text = "💎"
-    Method2Icon.TextColor3 = COLORS.LootLabs.Text
-    Method2Icon.Font = Enum.Font.GothamBold
-    Method2Icon.TextSize = isMobile and 16 or 28
-    Method2Icon.Parent = Method2Frame
+    local MethodIcon = Instance.new("TextLabel")
+    MethodIcon.Size = UDim2.new(0, isMobile and 28 or 44, 0, isMobile and 28 or 44)
+    MethodIcon.Position = UDim2.new(0, isMobile and 10 or 16, 0.5, isMobile and -14 or -22)
+    MethodIcon.BackgroundTransparency = 1
+    MethodIcon.Text = "💎"
+    MethodIcon.TextColor3 = COLORS.LootLabs.Text
+    MethodIcon.Font = Enum.Font.GothamBold
+    MethodIcon.TextSize = isMobile and 20 or 32
+    MethodIcon.Parent = MethodFrame
 
-    local Method2Title = Instance.new("TextLabel")
-    Method2Title.Size = UDim2.new(1, isMobile and -90 or -65, 0, 18)
-    Method2Title.Position = UDim2.new(0, isMobile and 36 or 60, 0, isMobile and 8 or 12)
-    Method2Title.BackgroundTransparency = 1
-    Method2Title.Text = "LootLabs"
-    Method2Title.TextColor3 = COLORS.LootLabs.Text
-    Method2Title.Font = Enum.Font.GothamBold
-    Method2Title.TextSize = isMobile and 11 or 15
-    Method2Title.TextXAlignment = Enum.TextXAlignment.Left
-    Method2Title.Parent = Method2Frame
+    local MethodTitle = Instance.new("TextLabel")
+    MethodTitle.Size = UDim2.new(1, isMobile and -100 or -80, 0, 22)
+    MethodTitle.Position = UDim2.new(0, isMobile and 45 or 70, 0, isMobile and 10 or 14)
+    MethodTitle.BackgroundTransparency = 1
+    MethodTitle.Text = "LootLabs"
+    MethodTitle.TextColor3 = COLORS.LootLabs.Text
+    MethodTitle.Font = Enum.Font.GothamBold
+    MethodTitle.TextSize = isMobile and 13 or 17
+    MethodTitle.TextXAlignment = Enum.TextXAlignment.Left
+    MethodTitle.Parent = MethodFrame
 
-    local Method2Desc = Instance.new("TextLabel")
-    Method2Desc.Size = UDim2.new(1, isMobile and -90 or -65, 0, 16)
-    Method2Desc.Position = UDim2.new(0, isMobile and 36 or 60, 0, isMobile and 24 or 35)
-    Method2Desc.BackgroundTransparency = 1
-    Method2Desc.Text = "Get key via LootLabs"
-    Method2Desc.TextColor3 = COLORS.LootLabs.Desc
-    Method2Desc.Font = Enum.Font.Gotham
-    Method2Desc.TextSize = isMobile and 8 or 11
-    Method2Desc.TextXAlignment = Enum.TextXAlignment.Left
-    Method2Desc.TextWrapped = true
-    Method2Desc.Parent = Method2Frame
+    local MethodDesc = Instance.new("TextLabel")
+    MethodDesc.Size = UDim2.new(1, isMobile and -100 or -80, 0, 18)
+    MethodDesc.Position = UDim2.new(0, isMobile and 45 or 70, 0, isMobile and 32 or 42)
+    MethodDesc.BackgroundTransparency = 1
+    MethodDesc.Text = "Click to copy key link"
+    MethodDesc.TextColor3 = COLORS.LootLabs.Desc
+    MethodDesc.Font = Enum.Font.Gotham
+    MethodDesc.TextSize = isMobile and 9 or 12
+    MethodDesc.TextXAlignment = Enum.TextXAlignment.Left
+    MethodDesc.TextWrapped = true
+    MethodDesc.Parent = MethodFrame
 
-    local Method2Btn = Instance.new("TextButton")
-    Method2Btn.Size = UDim2.new(0, isMobile and 60 or 90, 0, isMobile and 26 or 32)
-    Method2Btn.Position = UDim2.new(1, isMobile and -68 or -105, 0.5, isMobile and -13 or -16)
-    Method2Btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Method2Btn.Text = "GET KEY"
-    Method2Btn.TextColor3 = COLORS.LootLabs.BtnText
-    Method2Btn.Font = Enum.Font.GothamBold
-    Method2Btn.TextSize = isMobile and 9 or 12
-    Method2Btn.Parent = Method2Frame
+    local MethodBtn = Instance.new("TextButton")
+    MethodBtn.Size = UDim2.new(0, isMobile and 70 or 100, 0, isMobile and 30 or 36)
+    MethodBtn.Position = UDim2.new(1, isMobile and -78 or -112, 0.5, isMobile and -15 or -18)
+    MethodBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    MethodBtn.Text = "GET KEY"
+    MethodBtn.TextColor3 = COLORS.LootLabs.BtnText
+    MethodBtn.Font = Enum.Font.GothamBold
+    MethodBtn.TextSize = isMobile and 10 or 13
+    MethodBtn.Parent = MethodFrame
 
-    local Method2BtnCorner = Instance.new("UICorner")
-    Method2BtnCorner.CornerRadius = UDim.new(0, isMobile and 6 or 8)
-    Method2BtnCorner.Parent = Method2Btn
+    local MethodBtnCorner = Instance.new("UICorner")
+    MethodBtnCorner.CornerRadius = UDim.new(0, isMobile and 6 or 8)
+    MethodBtnCorner.Parent = MethodBtn
 
-    -- METHOD 3: DISCORD - UKURAN DIKECILKAN
-    local DiscordFrame = Instance.new("Frame")
-    DiscordFrame.Size = UDim2.new(1, -8, 0, isMobile and 40 or 65)
-    DiscordFrame.Position = UDim2.new(0, 4, 0, isMobile and 188 or 300)
-    DiscordFrame.BackgroundColor3 = COLORS.Discord.Primary
-    DiscordFrame.BackgroundTransparency = 0.1
-    DiscordFrame.BorderSizePixel = 0
-    DiscordFrame.Parent = Content
-
-    local DiscordCorner = Instance.new("UICorner")
-    DiscordCorner.CornerRadius = UDim.new(0, isMobile and 8 or 12)
-    DiscordCorner.Parent = DiscordFrame
-
-    local DiscordGradient = Instance.new("UIGradient")
-    DiscordGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, COLORS.Discord.Primary),
-        ColorSequenceKeypoint.new(1, COLORS.Discord.Secondary)
-    })
-    DiscordGradient.Rotation = 135
-    DiscordGradient.Parent = DiscordFrame
-
-    local DiscordIcon = Instance.new("TextLabel")
-    DiscordIcon.Size = UDim2.new(0, isMobile and 24 or 40, 0, isMobile and 24 or 40)
-    DiscordIcon.Position = UDim2.new(0, isMobile and 8 or 15, 0.5, isMobile and -12 or -20)
-    DiscordIcon.BackgroundTransparency = 1
-    DiscordIcon.Text = "🎮"
-    DiscordIcon.TextColor3 = COLORS.Discord.Text
-    DiscordIcon.Font = Enum.Font.GothamBold
-    DiscordIcon.TextSize = isMobile and 16 or 28
-    DiscordIcon.Parent = DiscordFrame
-
-    local DiscordTitle = Instance.new("TextLabel")
-    DiscordTitle.Size = UDim2.new(1, isMobile and -90 or -65, 0, 16)
-    DiscordTitle.Position = UDim2.new(0, isMobile and 36 or 60, 0, isMobile and 4 or 10)
-    DiscordTitle.BackgroundTransparency = 1
-    DiscordTitle.Text = "Join Discord"
-    DiscordTitle.TextColor3 = COLORS.Discord.Text
-    DiscordTitle.Font = Enum.Font.GothamBold
-    DiscordTitle.TextSize = isMobile and 11 or 15
-    DiscordTitle.TextXAlignment = Enum.TextXAlignment.Left
-    DiscordTitle.Parent = DiscordFrame
-
-    local DiscordDesc = Instance.new("TextLabel")
-    DiscordDesc.Size = UDim2.new(1, isMobile and -90 or -65, 0, 14)
-    DiscordDesc.Position = UDim2.new(0, isMobile and 36 or 60, 0, isMobile and 20 or 32)
-    DiscordDesc.BackgroundTransparency = 1
-    DiscordDesc.Text = "Updates & support!"
-    DiscordDesc.TextColor3 = COLORS.Discord.Desc
-    DiscordDesc.Font = Enum.Font.Gotham
-    DiscordDesc.TextSize = isMobile and 8 or 11
-    DiscordDesc.TextXAlignment = Enum.TextXAlignment.Left
-    DiscordDesc.TextWrapped = true
-    DiscordDesc.Parent = DiscordFrame
-
-    local DiscordBtn = Instance.new("TextButton")
-    DiscordBtn.Size = UDim2.new(0, isMobile and 60 or 90, 0, isMobile and 26 or 32)
-    DiscordBtn.Position = UDim2.new(1, isMobile and -68 or -105, 0.5, isMobile and -13 or -16)
-    DiscordBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    DiscordBtn.Text = "JOIN"
-    DiscordBtn.TextColor3 = COLORS.Discord.BtnText
-    DiscordBtn.Font = Enum.Font.GothamBold
-    DiscordBtn.TextSize = isMobile and 9 or 12
-    DiscordBtn.Parent = DiscordFrame
-
-    local DiscordBtnCorner = Instance.new("UICorner")
-    DiscordBtnCorner.CornerRadius = UDim.new(0, isMobile and 6 or 8)
-    DiscordBtnCorner.Parent = DiscordBtn
-
-    -- KEY INPUT SECTION - LEBIH COMPACT
     local KeyFrame = Instance.new("Frame")
     KeyFrame.Size = UDim2.new(1, -8, 0, isMobile and 70 or 95)
-    KeyFrame.Position = UDim2.new(0, 4, 0, isMobile and 232 or 370)
+    KeyFrame.Position = UDim2.new(0, 4, 0, isMobile and 170 or 230)
     KeyFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     KeyFrame.BackgroundTransparency = 0.3
     KeyFrame.BorderSizePixel = 0
@@ -477,14 +343,6 @@ local function createDualKeySystemGUI()
     local KeyFrameCorner = Instance.new("UICorner")
     KeyFrameCorner.CornerRadius = UDim.new(0, isMobile and 8 or 12)
     KeyFrameCorner.Parent = KeyFrame
-
-    local KeyFrameGradient = Instance.new("UIGradient")
-    KeyFrameGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(250, 250, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(235, 240, 250))
-    })
-    KeyFrameGradient.Rotation = 90
-    KeyFrameGradient.Parent = KeyFrame
 
     local KeyIcon = Instance.new("TextLabel")
     KeyIcon.Size = UDim2.new(0, isMobile and 18 or 25, 0, isMobile and 18 or 25)
@@ -525,10 +383,9 @@ local function createDualKeySystemGUI()
     KeyInputCorner.CornerRadius = UDim.new(0, isMobile and 6 or 8)
     KeyInputCorner.Parent = KeyInput
 
-    -- BUTTONS ROW - LEBIH COMPACT
     local BottomRow = Instance.new("Frame")
     BottomRow.Size = UDim2.new(1, -8, 0, isMobile and 60 or 85)
-    BottomRow.Position = UDim2.new(0, 4, 0, isMobile and 306 or 470)
+    BottomRow.Position = UDim2.new(0, 4, 0, isMobile and 245 or 335)
     BottomRow.BackgroundTransparency = 1
     BottomRow.Parent = Content
 
@@ -565,97 +422,136 @@ local function createDualKeySystemGUI()
     StatusLabel.Size = UDim2.new(1, 0, 0, 20)
     StatusLabel.Position = UDim2.new(0, 0, 0, isMobile and 38 or 48)
     StatusLabel.BackgroundTransparency = 1
-    StatusLabel.Text = "✨ Choose method above to get key"
+    StatusLabel.Text = "✨ Click GET KEY to start"
     StatusLabel.TextColor3 = Color3.fromRGB(100, 110, 130)
     StatusLabel.Font = Enum.Font.Gotham
     StatusLabel.TextSize = isMobile and 8 or 11
     StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
     StatusLabel.Parent = BottomRow
 
-    -- FUNCTIONS
+    local DiscordFrame = Instance.new("Frame")
+    DiscordFrame.Size = UDim2.new(1, -8, 0, isMobile and 40 or 60)
+    DiscordFrame.Position = UDim2.new(0, 4, 0, isMobile and 315 or 430)
+    DiscordFrame.BackgroundColor3 = COLORS.Discord.Primary
+    DiscordFrame.BackgroundTransparency = 0.1
+    DiscordFrame.BorderSizePixel = 0
+    DiscordFrame.Parent = Content
+
+    local DiscordCorner = Instance.new("UICorner")
+    DiscordCorner.CornerRadius = UDim.new(0, isMobile and 8 or 12)
+    DiscordCorner.Parent = DiscordFrame
+
+    local DiscordIcon = Instance.new("TextLabel")
+    DiscordIcon.Size = UDim2.new(0, isMobile and 24 or 36, 0, isMobile and 24 or 36)
+    DiscordIcon.Position = UDim2.new(0, isMobile and 10 or 15, 0.5, isMobile and -12 or -18)
+    DiscordIcon.BackgroundTransparency = 1
+    DiscordIcon.Text = "🎮"
+    DiscordIcon.TextColor3 = COLORS.Discord.Text
+    DiscordIcon.Font = Enum.Font.GothamBold
+    DiscordIcon.TextSize = isMobile and 16 or 24
+    DiscordIcon.Parent = DiscordFrame
+
+    local DiscordTitle = Instance.new("TextLabel")
+    DiscordTitle.Size = UDim2.new(1, isMobile and -90 or -70, 0, 18)
+    DiscordTitle.Position = UDim2.new(0, isMobile and 45 or 65, 0, isMobile and 6 or 10)
+    DiscordTitle.BackgroundTransparency = 1
+    DiscordTitle.Text = "Join Discord"
+    DiscordTitle.TextColor3 = COLORS.Discord.Text
+    DiscordTitle.Font = Enum.Font.GothamBold
+    DiscordTitle.TextSize = isMobile and 11 or 14
+    DiscordTitle.TextXAlignment = Enum.TextXAlignment.Left
+    DiscordTitle.Parent = DiscordFrame
+
+    local DiscordBtn = Instance.new("TextButton")
+    DiscordBtn.Size = UDim2.new(0, isMobile and 70 or 90, 0, isMobile and 28 or 34)
+    DiscordBtn.Position = UDim2.new(1, isMobile and -78 or -102, 0.5, isMobile and -14 or -17)
+    DiscordBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    DiscordBtn.Text = "JOIN"
+    DiscordBtn.TextColor3 = COLORS.Discord.BtnText
+    DiscordBtn.Font = Enum.Font.GothamBold
+    DiscordBtn.TextSize = isMobile and 10 or 12
+    DiscordBtn.Parent = DiscordFrame
+
+    local DiscordBtnCorner = Instance.new("UICorner")
+    DiscordBtnCorner.CornerRadius = UDim.new(0, isMobile and 6 or 8)
+    DiscordBtnCorner.Parent = DiscordBtn
+
     local function copyToClipboard(text, btn, originalText, successColor)
         if setclipboard then
             setclipboard(text)
             btn.Text = "✓ COPIED"
             btn.BackgroundColor3 = successColor
-            StatusLabel.Text = "✅ Link copied! Paste in browser"
+            StatusLabel.Text = "✅ Link copied! Open in your browser"
             StatusLabel.TextColor3 = Color3.fromRGB(30, 140, 100)
-            
             task.wait(2)
             btn.Text = originalText
             btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            StatusLabel.Text = "✨ Choose method above to get key"
+            StatusLabel.Text = "✨ Click GET KEY to start"
             StatusLabel.TextColor3 = Color3.fromRGB(100, 110, 130)
         else
-            StatusLabel.Text = "❌ Clipboard not supported!"
+            StatusLabel.Text = "❌ Clipboard not supported on this device"
             StatusLabel.TextColor3 = Color3.fromRGB(200, 70, 70)
         end
     end
 
-    -- Method 1: Linkvertise
-    Method1Btn.MouseButton1Click:Connect(function()
-        copyToClipboard(CONFIG.LinkvertiseURL, Method1Btn, "GET KEY", COLORS.Linkvertise.Primary)
+    MethodBtn.MouseButton1Click:Connect(function()
+        copyToClipboard(CONFIG.LootLabsURL, MethodBtn, "GET KEY", COLORS.LootLabs.Primary)
     end)
 
-    -- Method 2: LootLabs
-    Method2Btn.MouseButton1Click:Connect(function()
-        copyToClipboard(CONFIG.LootLabsURL, Method2Btn, "GET KEY", COLORS.LootLabs.Primary)
-    end)
-
-    -- Method 3: Discord
     DiscordBtn.MouseButton1Click:Connect(function()
         copyToClipboard(CONFIG.DiscordURL, DiscordBtn, "JOIN", COLORS.Discord.Primary)
-        StatusLabel.Text = "🎮 Discord link copied! Paste in browser"
+        StatusLabel.Text = "🎮 Discord link copied!"
         StatusLabel.TextColor3 = Color3.fromRGB(88, 101, 242)
+        task.wait(2.5)
+        StatusLabel.Text = "✨ Click GET KEY to start"
+        StatusLabel.TextColor3 = Color3.fromRGB(100, 110, 130)
     end)
 
     ClearBtn.MouseButton1Click:Connect(function()
         KeyInput.Text = ""
         StatusLabel.Text = "🗑️ Input cleared"
         StatusLabel.TextColor3 = Color3.fromRGB(200, 130, 50)
-        
         task.wait(1.5)
-        StatusLabel.Text = "✨ Choose method above to get key"
+        StatusLabel.Text = "✨ Click GET KEY to start"
         StatusLabel.TextColor3 = Color3.fromRGB(100, 110, 130)
+    end)
+
+    task.spawn(function()
+        if isfile and isfile(KEY_FILE) then
+            local success, content = pcall(readfile, KEY_FILE)
+            if success and content and content ~= "" then
+                KeyInput.Text = content
+                StatusLabel.Text = "🔄 Saved Key Deteck"
+                StatusLabel.TextColor3 = Color3.fromRGB(0, 170, 255)
+            end
+        end
     end)
 
     SubmitBtn.MouseButton1Click:Connect(function()
         local userKey = KeyInput.Text:gsub("%s+", "")
-        
         if userKey == "" then
-            StatusLabel.Text = "❌ Key cannot be empty!"
+            StatusLabel.Text = "❌ Input Key!"
             StatusLabel.TextColor3 = Color3.fromRGB(200, 70, 70)
             return
         end
-        
-        StatusLabel.Text = "🔍 Verifying key..."
+        StatusLabel.Text = "🔍 Memverifikasi key..."
         StatusLabel.TextColor3 = Color3.fromRGB(240, 180, 50)
-        
         task.spawn(function()
             if userKey == VALID_KEY then
-                StatusLabel.Text = "✅ Key valid! Loading..."
+                StatusLabel.Text = "✅ Key Valid!"
                 StatusLabel.TextColor3 = Color3.fromRGB(30, 140, 100)
-                
+                saveAuthentication(userKey)
                 task.wait(1)
                 ScreenGui:Destroy()
-                
-                local success, err = pcall(function()
+                pcall(function()
                     loadstring(game:HttpGet(CONFIG.MainScriptUrl, true))()
                 end)
-                
-                if not success then
-                    game:GetService("StarterGui"):SetCore("SendNotification", {
-                        Title = "Error",
-                        Text = "Failed to load main script!",
-                        Duration = 3
-                    })
-                end
             else
-                StatusLabel.Text = "❌ Invalid key!"
+                StatusLabel.Text = "❌ Wrong Key"
                 StatusLabel.TextColor3 = Color3.fromRGB(200, 70, 70)
-                
+                if isfile and isfile(KEY_FILE) then pcall(delfile, KEY_FILE) end
                 task.wait(2)
-                StatusLabel.Text = "✨ Choose method above to get key"
+                StatusLabel.Text = "✨ Click GET KEY to start"
                 StatusLabel.TextColor3 = Color3.fromRGB(100, 110, 130)
             end
         end)
@@ -668,4 +564,4 @@ local function createDualKeySystemGUI()
     end)
 end
 
-createDualKeySystemGUI()
+createSingleKeySystemGUI()
