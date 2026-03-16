@@ -1,567 +1,797 @@
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer or {UserId = 0}
+local Players      = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UIS          = game:GetService("UserInputService")
+local LocalPlayer  = Players.LocalPlayer or {UserId = 0}
 
-local ENCODED_KEY = {
-    349,448,391,442,310,415,445,412,415,430,409,250,244,250,262
-}
+local ENCODED_KEY = { 349,448,391,442,310,415,445,412,415,430,409,250,244,250,262 }
 
 local function getValidKey()
-    local key = ""
-    for _, v in ipairs(ENCODED_KEY) do
-        local ascii = (v - 100) / 3
-        key = key .. string.char(math.floor(ascii))
-    end
-    return key
+	local key = ""
+	for _, v in ipairs(ENCODED_KEY) do
+		key = key .. string.char(math.floor((v-100)/3))
+	end
+	return key
 end
 
 local VALID_KEY = getValidKey()
-
-local KEY_FILE = "fayy_auth_" .. tostring(LocalPlayer.UserId) .. ".dat"
+local KEY_FILE  = "fayy_auth_" .. tostring(LocalPlayer.UserId) .. ".dat"
 
 local function isAlreadyAuthenticated()
-    if not isfile or not isfile(KEY_FILE) then return false end
-    local success, saved = pcall(readfile, KEY_FILE)
-    if not success or not saved or saved == "" then return false end
-    return saved:match("^%s*(.-)%s*$") == VALID_KEY
+	if not isfile or not isfile(KEY_FILE) then return false end
+	local ok, saved = pcall(readfile, KEY_FILE)
+	if not ok or not saved or saved == "" then return false end
+	return saved:match("^%s*(.-)%s*$") == VALID_KEY
 end
 
 local function saveAuthentication(key)
-    if writefile then
-        pcall(function()
-            writefile(KEY_FILE, key)
-        end)
-    end
+	if writefile then pcall(writefile, KEY_FILE, key) end
 end
 
 if isAlreadyAuthenticated() then
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/FayyMeng/Star-Fishing/refs/heads/main/Star%20Fishing%20lua", true))()
-    end)
-    return
+	pcall(function()
+		loadstring(game:HttpGet(
+			"https://raw.githubusercontent.com/FayyMeng/Star-Fishing/refs/heads/main/Star%20Fishing%20lua", true))()
+	end)
+	return
 end
 
-local function createSingleKeySystemGUI()
-    local CONFIG = {
-        LootLabsURL = "https://loot-link.com/s?LAjHExf0&data=7hDViHN3IUApLO81kcTWQkRXb6A%2B3GVKwgACTu5OaqqI757Wy5%2BiBiwU%2BVh7vv8R",
-        MainScriptUrl = "https://raw.githubusercontent.com/FayyMeng/Star-Fishing/refs/heads/main/Star%20Fishing%20lua",
-        DiscordURL = "https://discord.gg/Dz2BafGg7",
-    }
-   
-    local COLORS = {
-        LootLabs = {
-            Primary = Color3.fromRGB(75, 0, 130),
-            Secondary = Color3.fromRGB(106, 90, 205),
-            Text = Color3.fromRGB(255, 255, 255),
-            Desc = Color3.fromRGB(230, 220, 250),
-            BtnText = Color3.fromRGB(75, 0, 130),
-        },
-        Discord = {
-            Primary = Color3.fromRGB(88, 101, 242),
-            Secondary = Color3.fromRGB(71, 82, 196),
-            Text = Color3.fromRGB(255, 255, 255),
-            Desc = Color3.fromRGB(210, 215, 255),
-            BtnText = Color3.fromRGB(88, 101, 242),
-        }
-    }
-   
-    local isMobile = game:GetService("UserInputService").TouchEnabled
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "FayyKeyGUI"
-    ScreenGui.Parent = game:GetService("CoreGui")
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+local function createGUI()
+	local CONFIG = {
+		LootLabsURL   = "https://loot-link.com/s?LAjHExf0&data=7hDViHN3IUApLO81kcTWQkRXb6A%2B3GVKwgACTu5OaqqI757Wy5%2BiBiwU%2BVh7vv8R",
+		MainScriptUrl = "https://raw.githubusercontent.com/FayyMeng/Star-Fishing/refs/heads/main/Star%20Fishing%20lua",
+		DiscordURL    = "https://discord.gg/Dz2BafGg7",
+	}
 
-    local guiWidth = isMobile and 320 or 460
-    local guiHeight = isMobile and 420 or 520
+	local C = {
+		G2_Top  = Color3.fromRGB(255,229,241),
+		G2_Mid  = Color3.fromRGB(240, 66,255),
+		G2_Bot  = Color3.fromRGB(114, 38,255),
+		G4_Top  = Color3.fromRGB(114, 38,255),
+		G4_Mid  = Color3.fromRGB( 22,  0,120),
+		G4_Dark = Color3.fromRGB(  1,  0, 48),
+		White   = Color3.fromRGB(255,255,255),
+		TxtLt   = Color3.fromRGB(255,229,241),
+		TxtDim  = Color3.fromRGB(200,160,230),
+		OK      = Color3.fromRGB( 80,220,160),
+		Err     = Color3.fromRGB(255, 80,100),
+		Warn    = Color3.fromRGB(255,200, 80),
+	}
 
-    local Container = Instance.new("Frame")
-    Container.Size = UDim2.new(0, guiWidth, 0, guiHeight)
-    Container.Position = UDim2.new(0.5, -guiWidth/2, 0.5, -guiHeight/2)
-    Container.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Container.BackgroundTransparency = 0.05
-    Container.BorderSizePixel = 0
-    Container.ClipsDescendants = true
-    Container.Parent = ScreenGui
+	local CYCLE = { C.G2_Mid, C.G2_Bot, C.G2_Top, C.G4_Top, C.G4_Mid, C.G2_Mid }
 
-    local ContainerGradient = Instance.new("UIGradient")
-    ContainerGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(250, 250, 255)),
-        ColorSequenceKeypoint.new(0.7, Color3.fromRGB(235, 240, 250)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(220, 225, 240))
-    })
-    ContainerGradient.Rotation = 135
-    ContainerGradient.Parent = Container
+	local isMobile = UIS.TouchEnabled
+	local W, H     = isMobile and 480 or 600, isMobile and 220 or 280
+	local R        = isMobile and 14 or 18
+	local PAD      = isMobile and 10 or 14
+	local FS       = {
+		title = isMobile and 13 or 16,
+		body  = isMobile and 11 or 13,
+		small = isMobile and 10 or 12,
+		btn   = isMobile and 11 or 13,
+	}
 
-    local Shadow = Instance.new("ImageLabel")
-    Shadow.Size = UDim2.new(1, 20, 1, 20)
-    Shadow.Position = UDim2.new(0, -10, 0, -10)
-    Shadow.BackgroundTransparency = 1
-    Shadow.Image = "rbxassetid://6014261993"
-    Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-    Shadow.ImageTransparency = 0.6
-    Shadow.ScaleType = Enum.ScaleType.Slice
-    Shadow.SliceCenter = Rect.new(10, 10, 10, 10)
-    Shadow.Parent = Container
+	local ScreenGui = Instance.new("ScreenGui")
+	ScreenGui.Name         = "FayyKeyGUI_v6"
+	ScreenGui.Parent       = game:GetService("CoreGui")
+	ScreenGui.ResetOnSpawn = false
+	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, isMobile and 12 or 16)
-    Corner.Parent = Container
+	local TBSize = isMobile and 52 or 62
 
-    local LeftPanel = Instance.new("Frame")
-    LeftPanel.Size = UDim2.new(0, isMobile and 50 or 80, 1, 0)
-    LeftPanel.BackgroundColor3 = Color3.fromRGB(10, 20, 40)
-    LeftPanel.BorderSizePixel = 0
-    LeftPanel.Parent = Container
+	local ToggleHolder = Instance.new("Frame")
+	ToggleHolder.Name                 = "ToggleHolder"
+	ToggleHolder.Size                 = UDim2.new(0, TBSize+12, 0, TBSize+6)
+	ToggleHolder.Position             = UDim2.new(0, 8, 0.5, -(TBSize/2)-13)
+	ToggleHolder.BackgroundTransparency = 1
+	ToggleHolder.BorderSizePixel      = 0
+	ToggleHolder.ZIndex               = 10
+	ToggleHolder.Parent               = ScreenGui
 
-    local LeftPanelCorner = Instance.new("UICorner")
-    LeftPanelCorner.CornerRadius = UDim.new(0, isMobile and 12 or 16)
-    LeftPanelCorner.Parent = LeftPanel
+	local ToggleOutline = Instance.new("Frame")
+	ToggleOutline.Size                 = UDim2.new(0, TBSize+6, 0, TBSize+6)
+	ToggleOutline.Position             = UDim2.new(0, 3, 0, -3)
+	ToggleOutline.BackgroundColor3     = C.G2_Mid
+	ToggleOutline.BackgroundTransparency = 0
+	ToggleOutline.BorderSizePixel      = 0
+	ToggleOutline.ZIndex               = 10
+	ToggleOutline.Parent               = ToggleHolder
 
-    local LeftPanelGradient = Instance.new("UIGradient")
-    LeftPanelGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 25, 45)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 35, 60))
-    })
-    LeftPanelGradient.Rotation = 180
-    LeftPanelGradient.Parent = LeftPanel
+	local TOCorner = Instance.new("UICorner")
+	TOCorner.CornerRadius = UDim.new(0, isMobile and 14 or 16)
+	TOCorner.Parent = ToggleOutline
 
-    local LogoFrame = Instance.new("Frame")
-    LogoFrame.Size = UDim2.new(0, isMobile and 30 or 50, 0, isMobile and 30 or 50)
-    LogoFrame.Position = UDim2.new(0.5, isMobile and -15 or -25, 0, isMobile and 10 or 15)
-    LogoFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    LogoFrame.BackgroundTransparency = 0.1
-    LogoFrame.BorderSizePixel = 0
-    LogoFrame.Parent = LeftPanel
+	local ToggleBtn = Instance.new("TextButton")
+	ToggleBtn.Name             = "ToggleBtn"
+	ToggleBtn.Size             = UDim2.new(0, TBSize, 0, TBSize)
+	ToggleBtn.Position         = UDim2.new(0, 6, 0, 0)
+	ToggleBtn.BackgroundColor3 = C.G4_Mid
+	ToggleBtn.BorderSizePixel  = 0
+	ToggleBtn.Text             = "🔑"
+	ToggleBtn.TextSize         = isMobile and 24 or 28
+	ToggleBtn.Font             = Enum.Font.GothamBold
+	ToggleBtn.TextColor3       = C.White
+	ToggleBtn.ZIndex           = 11
+	ToggleBtn.Parent           = ToggleHolder
 
-    local LogoCorner = Instance.new("UICorner")
-    LogoCorner.CornerRadius = UDim.new(0, isMobile and 15 or 25)
-    LogoCorner.Parent = LogoFrame
+	local TCorner = Instance.new("UICorner")
+	TCorner.CornerRadius = UDim.new(0, isMobile and 12 or 14)
+	TCorner.Parent = ToggleBtn
 
-    local LogoGradient = Instance.new("UIGradient")
-    LogoGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(220, 225, 240)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-    })
-    LogoGradient.Rotation = 45
-    LogoGradient.Parent = LogoFrame
+	local TGrad = Instance.new("UIGradient")
+	TGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, C.G2_Mid),
+		ColorSequenceKeypoint.new(1, C.G4_Top),
+	})
+	TGrad.Rotation = 135
+	TGrad.Parent = ToggleBtn
 
-    local LogoText = Instance.new("TextLabel")
-    LogoText.Size = UDim2.new(1, 0, 1, 0)
-    LogoText.BackgroundTransparency = 1
-    LogoText.Text = "🔑"
-    LogoText.TextColor3 = Color3.fromRGB(20, 30, 50)
-    LogoText.Font = Enum.Font.GothamBold
-    LogoText.TextSize = isMobile and 16 or 28
-    LogoText.Parent = LogoFrame
+	do
+		local dragging, dragStart, startPos = false, nil, nil
 
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, 0, 0, isMobile and 12 or 20)
-    Title.Position = UDim2.new(0, 0, 0, isMobile and 45 or 70)
-    Title.BackgroundTransparency = 1
-    Title.Text = "FAYY"
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = isMobile and 10 or 16
-    Title.Parent = LeftPanel
+		ToggleBtn.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch then
+				dragging  = true
+				dragStart = input.Position
+				startPos  = ToggleHolder.Position
+			end
+		end)
 
-    local Title2 = Instance.new("TextLabel")
-    Title2.Size = UDim2.new(1, 0, 0, isMobile and 12 or 20)
-    Title2.Position = UDim2.new(0, 0, 0, isMobile and 56 or 88)
-    Title2.BackgroundTransparency = 1
-    Title2.Text = "SCRIPT"
-    Title2.TextColor3 = Color3.fromRGB(180, 200, 230)
-    Title2.Font = Enum.Font.GothamBold
-    Title2.TextSize = isMobile and 9 or 14
-    Title2.Parent = LeftPanel
+		UIS.InputChanged:Connect(function(input)
+			if dragging and (
+				input.UserInputType == Enum.UserInputType.MouseMovement or
+				input.UserInputType == Enum.UserInputType.Touch) then
+				local delta = input.Position - dragStart
+				ToggleHolder.Position = UDim2.new(
+					startPos.X.Scale, startPos.X.Offset + delta.X,
+					startPos.Y.Scale, startPos.Y.Offset + delta.Y
+				)
+			end
+		end)
 
-    local Version = Instance.new("TextLabel")
-    Version.Size = UDim2.new(1, 0, 0, 15)
-    Version.Position = UDim2.new(0, 0, 1, isMobile and -18 or -25)
-    Version.BackgroundTransparency = 1
-    Version.Text = "v3.0"
-    Version.TextColor3 = Color3.fromRGB(150, 170, 200)
-    Version.Font = Enum.Font.Gotham
-    Version.TextSize = isMobile and 8 or 10
-    Version.Parent = LeftPanel
+		UIS.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch then
+				dragging = false
+			end
+		end)
+	end
 
-    local Content = Instance.new("Frame")
-    Content.Size = UDim2.new(1, isMobile and -55 or -90, 1, -16)
-    Content.Position = UDim2.new(0, isMobile and 55 or 85, 0, 8)
-    Content.BackgroundTransparency = 1
-    Content.Parent = Container
+	local BP = 4
+	local Outline = Instance.new("Frame")
+	Outline.Name             = "Outline"
+	Outline.Size             = UDim2.new(0, W+BP*2, 0, H+BP*2)
+	Outline.Position         = UDim2.new(0.5, -(W/2)-BP, 0.5, -(H/2)-BP)
+	Outline.BackgroundColor3 = C.G2_Mid
+	Outline.BorderSizePixel  = 0
+	Outline.ZIndex           = 1
+	Outline.Parent           = ScreenGui
 
-    local CloseBtn = Instance.new("TextButton")
-    CloseBtn.Size = UDim2.new(0, isMobile and 22 or 30, 0, isMobile and 22 or 30)
-    CloseBtn.Position = UDim2.new(1, isMobile and -26 or -35, 0, -4)
-    CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    CloseBtn.BackgroundTransparency = 0.2
-    CloseBtn.Text = "✕"
-    CloseBtn.TextColor3 = Color3.fromRGB(20, 30, 50)
-    CloseBtn.Font = Enum.Font.GothamBold
-    CloseBtn.TextSize = isMobile and 11 or 16
-    CloseBtn.Parent = Content
+	local OCorner = Instance.new("UICorner")
+	OCorner.CornerRadius = UDim.new(0, R+BP)
+	OCorner.Parent = Outline
 
-    local CloseCorner = Instance.new("UICorner")
-    CloseCorner.CornerRadius = UDim.new(0, isMobile and 6 or 8)
-    CloseCorner.Parent = CloseBtn
+	local Container = Instance.new("Frame")
+	Container.Name             = "Container"
+	Container.Size             = UDim2.new(0, W, 0, H)
+	Container.Position         = UDim2.new(0.5, -W/2, 0.5, -H/2)
+	Container.BackgroundColor3 = C.G4_Dark
+	Container.BorderSizePixel  = 0
+	Container.ClipsDescendants = true
+	Container.ZIndex           = 2
+	Container.Parent           = ScreenGui
 
-    CloseBtn.MouseButton1Click:Connect(function()
-        ScreenGui:Destroy()
-    end)
+	local ContCorner = Instance.new("UICorner")
+	ContCorner.CornerRadius = UDim.new(0, R)
+	ContCorner.Parent = Container
 
-    local AnnouncementFrame = Instance.new("Frame")
-    AnnouncementFrame.Size = UDim2.new(1, -8, 0, isMobile and 36 or 50)
-    AnnouncementFrame.Position = UDim2.new(0, 4, 0, 0)
-    AnnouncementFrame.BackgroundColor3 = Color3.fromRGB(25, 35, 60)
-    AnnouncementFrame.BackgroundTransparency = 0.1
-    AnnouncementFrame.BorderSizePixel = 0
-    AnnouncementFrame.Parent = Content
+	local BgGrad = Instance.new("UIGradient")
+	BgGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0,   C.G4_Top),
+		ColorSequenceKeypoint.new(0.5, C.G4_Mid),
+		ColorSequenceKeypoint.new(1,   C.G4_Dark),
+	})
+	BgGrad.Rotation = 135
+	BgGrad.Parent = Container
 
-    local AnnouncementCorner = Instance.new("UICorner")
-    AnnouncementCorner.CornerRadius = UDim.new(0, isMobile and 6 or 10)
-    AnnouncementCorner.Parent = AnnouncementFrame
+	local LEFT_W  = math.floor(W * 0.37)
+	local RIGHT_W = W - LEFT_W
 
-    local AnnouncementIcon = Instance.new("TextLabel")
-    AnnouncementIcon.Size = UDim2.new(0, isMobile and 20 or 26, 0, isMobile and 20 or 26)
-    AnnouncementIcon.Position = UDim2.new(0, isMobile and 8 or 12, 0.5, isMobile and -10 or -13)
-    AnnouncementIcon.BackgroundTransparency = 1
-    AnnouncementIcon.Text = "📢"
-    AnnouncementIcon.TextColor3 = Color3.fromRGB(255, 220, 100)
-    AnnouncementIcon.Font = Enum.Font.GothamBold
-    AnnouncementIcon.TextSize = isMobile and 14 or 20
-    AnnouncementIcon.Parent = AnnouncementFrame
+	local LeftPanel = Instance.new("Frame")
+	LeftPanel.Size             = UDim2.new(0, LEFT_W, 1, 0)
+	LeftPanel.BackgroundColor3 = C.G2_Mid
+	LeftPanel.BorderSizePixel  = 0
+	LeftPanel.ZIndex           = 3
+	LeftPanel.Parent           = Container
 
-    local AnnouncementText = Instance.new("TextLabel")
-    AnnouncementText.Size = UDim2.new(1, isMobile and -36 or -46, 1, -4)
-    AnnouncementText.Position = UDim2.new(0, isMobile and 36 or 46, 0, 2)
-    AnnouncementText.BackgroundTransparency = 1
-    AnnouncementText.Text = "Get key using the button below!"
-    AnnouncementText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    AnnouncementText.Font = Enum.Font.Gotham
-    AnnouncementText.TextSize = isMobile and 9 or 11
-    AnnouncementText.TextWrapped = true
-    AnnouncementText.TextXAlignment = Enum.TextXAlignment.Left
-    AnnouncementText.Parent = AnnouncementFrame
+	local LPCorner = Instance.new("UICorner")
+	LPCorner.CornerRadius = UDim.new(0, R)
+	LPCorner.Parent = LeftPanel
 
-    local Welcome = Instance.new("TextLabel")
-    Welcome.Size = UDim2.new(1, 0, 0, isMobile and 16 or 22)
-    Welcome.Position = UDim2.new(0, 0, 0, isMobile and 50 or 60)
-    Welcome.BackgroundTransparency = 1
-    Welcome.Text = "Get Key First,"
-    Welcome.TextColor3 = Color3.fromRGB(80, 90, 110)
-    Welcome.Font = Enum.Font.Gotham
-    Welcome.TextSize = isMobile and 10 or 14
-    Welcome.TextXAlignment = Enum.TextXAlignment.Left
-    Welcome.Parent = Content
+	local LPFill = Instance.new("Frame")
+	LPFill.Size             = UDim2.new(0, R, 1, 0)
+	LPFill.Position         = UDim2.new(1, -R, 0, 0)
+	LPFill.BackgroundColor3 = C.G2_Mid
+	LPFill.BorderSizePixel  = 0
+	LPFill.ZIndex           = 3
+	LPFill.Parent           = LeftPanel
 
-    local UserName = Instance.new("TextLabel")
-    UserName.Size = UDim2.new(1, 0, 0, isMobile and 22 or 32)
-    UserName.Position = UDim2.new(0, 0, 0, isMobile and 68 or 85)
-    UserName.BackgroundTransparency = 1
-    UserName.Text = "Star Fishing"
-    UserName.TextColor3 = Color3.fromRGB(30, 40, 60)
-    UserName.Font = Enum.Font.GothamBold
-    UserName.TextSize = isMobile and 16 or 24
-    UserName.TextXAlignment = Enum.TextXAlignment.Left
-    UserName.Parent = Content
+	local LPGrad = Instance.new("UIGradient")
+	LPGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0,   C.G2_Mid),
+		ColorSequenceKeypoint.new(0.6, C.G2_Bot),
+		ColorSequenceKeypoint.new(1,   C.G4_Mid),
+	})
+	LPGrad.Rotation = 150
+	LPGrad.Parent = LeftPanel
 
-    local MethodFrame = Instance.new("Frame")
-    MethodFrame.Size = UDim2.new(1, -8, 0, isMobile and 60 or 90)
-    MethodFrame.Position = UDim2.new(0, 4, 0, isMobile and 100 or 125)
-    MethodFrame.BackgroundColor3 = COLORS.LootLabs.Primary
-    MethodFrame.BackgroundTransparency = 0.1
-    MethodFrame.BorderSizePixel = 0
-    MethodFrame.Parent = Content
+	local Divider = Instance.new("Frame")
+	Divider.Name             = "Divider"
+	Divider.Size             = UDim2.new(0, 4, 1, 0)
+	Divider.Position         = UDim2.new(0, LEFT_W, 0, 0)
+	Divider.BackgroundColor3 = C.G2_Mid
+	Divider.BorderSizePixel  = 0
+	Divider.ZIndex           = 5
+	Divider.Parent           = Container
 
-    local MethodCorner = Instance.new("UICorner")
-    MethodCorner.CornerRadius = UDim.new(0, isMobile and 8 or 12)
-    MethodCorner.Parent = MethodFrame
+	local DivGrad = Instance.new("UIGradient")
+	DivGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0,   C.G2_Top),
+		ColorSequenceKeypoint.new(0.5, C.G2_Mid),
+		ColorSequenceKeypoint.new(1,   C.G4_Top),
+	})
+	DivGrad.Rotation = 90
+	DivGrad.Parent = Divider
 
-    local MethodGradient = Instance.new("UIGradient")
-    MethodGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, COLORS.LootLabs.Primary),
-        ColorSequenceKeypoint.new(1, COLORS.LootLabs.Secondary)
-    })
-    MethodGradient.Rotation = 135
-    MethodGradient.Parent = MethodFrame
+	local logoSz = isMobile and 38 or 48
+	local LogoBg = Instance.new("Frame")
+	LogoBg.Size                 = UDim2.new(0, logoSz, 0, logoSz)
+	LogoBg.Position             = UDim2.new(0.5, -logoSz/2, 0, isMobile and 14 or 18)
+	LogoBg.BackgroundColor3     = C.White
+	LogoBg.BackgroundTransparency = 0.72
+	LogoBg.BorderSizePixel      = 0
+	LogoBg.ZIndex               = 4
+	LogoBg.Parent               = LeftPanel
 
-    local MethodIcon = Instance.new("TextLabel")
-    MethodIcon.Size = UDim2.new(0, isMobile and 28 or 44, 0, isMobile and 28 or 44)
-    MethodIcon.Position = UDim2.new(0, isMobile and 10 or 16, 0.5, isMobile and -14 or -22)
-    MethodIcon.BackgroundTransparency = 1
-    MethodIcon.Text = "💎"
-    MethodIcon.TextColor3 = COLORS.LootLabs.Text
-    MethodIcon.Font = Enum.Font.GothamBold
-    MethodIcon.TextSize = isMobile and 20 or 32
-    MethodIcon.Parent = MethodFrame
+	local LBCorner = Instance.new("UICorner")
+	LBCorner.CornerRadius = UDim.new(0, isMobile and 10 or 12)
+	LBCorner.Parent = LogoBg
 
-    local MethodTitle = Instance.new("TextLabel")
-    MethodTitle.Size = UDim2.new(1, isMobile and -100 or -80, 0, 22)
-    MethodTitle.Position = UDim2.new(0, isMobile and 45 or 70, 0, isMobile and 10 or 14)
-    MethodTitle.BackgroundTransparency = 1
-    MethodTitle.Text = "LootLabs"
-    MethodTitle.TextColor3 = COLORS.LootLabs.Text
-    MethodTitle.Font = Enum.Font.GothamBold
-    MethodTitle.TextSize = isMobile and 13 or 17
-    MethodTitle.TextXAlignment = Enum.TextXAlignment.Left
-    MethodTitle.Parent = MethodFrame
+	local LogoEmoji = Instance.new("TextLabel")
+	LogoEmoji.Size               = UDim2.new(1,0,1,0)
+	LogoEmoji.BackgroundTransparency = 1
+	LogoEmoji.Text               = "🔑"
+	LogoEmoji.TextSize           = isMobile and 20 or 26
+	LogoEmoji.Font               = Enum.Font.GothamBold
+	LogoEmoji.TextColor3         = C.White
+	LogoEmoji.ZIndex             = 5
+	LogoEmoji.Parent             = LogoBg
 
-    local MethodDesc = Instance.new("TextLabel")
-    MethodDesc.Size = UDim2.new(1, isMobile and -100 or -80, 0, 18)
-    MethodDesc.Position = UDim2.new(0, isMobile and 45 or 70, 0, isMobile and 32 or 42)
-    MethodDesc.BackgroundTransparency = 1
-    MethodDesc.Text = "Click to copy key link"
-    MethodDesc.TextColor3 = COLORS.LootLabs.Desc
-    MethodDesc.Font = Enum.Font.Gotham
-    MethodDesc.TextSize = isMobile and 9 or 12
-    MethodDesc.TextXAlignment = Enum.TextXAlignment.Left
-    MethodDesc.TextWrapped = true
-    MethodDesc.Parent = MethodFrame
+	local TitleLbl = Instance.new("TextLabel")
+	TitleLbl.Size               = UDim2.new(1,-8,0,isMobile and 18 or 22)
+	TitleLbl.Position           = UDim2.new(0,4,0, logoSz+(isMobile and 20 or 26))
+	TitleLbl.BackgroundTransparency = 1
+	TitleLbl.Text               = "FAYY SCRIPT"
+	TitleLbl.TextColor3         = C.White
+	TitleLbl.Font               = Enum.Font.GothamBold
+	TitleLbl.TextSize           = FS.title
+	TitleLbl.TextXAlignment     = Enum.TextXAlignment.Center
+	TitleLbl.ZIndex             = 4
+	TitleLbl.Parent             = LeftPanel
 
-    local MethodBtn = Instance.new("TextButton")
-    MethodBtn.Size = UDim2.new(0, isMobile and 70 or 100, 0, isMobile and 30 or 36)
-    MethodBtn.Position = UDim2.new(1, isMobile and -78 or -112, 0.5, isMobile and -15 or -18)
-    MethodBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    MethodBtn.Text = "GET KEY"
-    MethodBtn.TextColor3 = COLORS.LootLabs.BtnText
-    MethodBtn.Font = Enum.Font.GothamBold
-    MethodBtn.TextSize = isMobile and 10 or 13
-    MethodBtn.Parent = MethodFrame
+	local SubLbl = Instance.new("TextLabel")
+	SubLbl.Size               = UDim2.new(1,-8,0,isMobile and 14 or 18)
+	SubLbl.Position           = UDim2.new(0,4,0, logoSz+(isMobile and 40 or 50))
+	SubLbl.BackgroundTransparency = 1
+	SubLbl.Text               = "Star Fishing"
+	SubLbl.TextColor3         = C.TxtLt
+	SubLbl.Font               = Enum.Font.GothamBold
+	SubLbl.TextSize           = FS.small
+	SubLbl.TextXAlignment     = Enum.TextXAlignment.Center
+	SubLbl.ZIndex             = 4
+	SubLbl.Parent             = LeftPanel
 
-    local MethodBtnCorner = Instance.new("UICorner")
-    MethodBtnCorner.CornerRadius = UDim.new(0, isMobile and 6 or 8)
-    MethodBtnCorner.Parent = MethodBtn
+	local AnnLbl = Instance.new("TextLabel")
+	AnnLbl.Size               = UDim2.new(1,-8,0,isMobile and 36 or 44)
+	AnnLbl.Position           = UDim2.new(0,4,1,isMobile and -44 or -52)
+	AnnLbl.BackgroundTransparency = 1
+	AnnLbl.Text               = "📢  Get key on the right!"
+	AnnLbl.TextColor3         = C.TxtLt
+	AnnLbl.Font               = Enum.Font.GothamBold
+	AnnLbl.TextSize           = FS.small
+	AnnLbl.TextWrapped        = true
+	AnnLbl.TextXAlignment     = Enum.TextXAlignment.Center
+	AnnLbl.ZIndex             = 4
+	AnnLbl.Parent             = LeftPanel
 
-    local KeyFrame = Instance.new("Frame")
-    KeyFrame.Size = UDim2.new(1, -8, 0, isMobile and 70 or 95)
-    KeyFrame.Position = UDim2.new(0, 4, 0, isMobile and 170 or 230)
-    KeyFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    KeyFrame.BackgroundTransparency = 0.3
-    KeyFrame.BorderSizePixel = 0
-    KeyFrame.Parent = Content
+	local RightPanel = Instance.new("Frame")
+	RightPanel.Size             = UDim2.new(0, RIGHT_W, 1, 0)
+	RightPanel.Position         = UDim2.new(0, LEFT_W, 0, 0)
+	RightPanel.BackgroundTransparency = 1
+	RightPanel.ZIndex           = 3
+	RightPanel.Parent           = Container
 
-    local KeyFrameCorner = Instance.new("UICorner")
-    KeyFrameCorner.CornerRadius = UDim.new(0, isMobile and 8 or 12)
-    KeyFrameCorner.Parent = KeyFrame
+	local CloseBtn = Instance.new("TextButton")
+	CloseBtn.Size             = UDim2.new(0, isMobile and 26 or 32, 0, isMobile and 26 or 32)
+	CloseBtn.Position         = UDim2.new(1, isMobile and -30 or -38, 0, isMobile and 6 or 8)
+	CloseBtn.BackgroundColor3 = C.White
+	CloseBtn.BackgroundTransparency = 0.80
+	CloseBtn.Text             = "✕"
+	CloseBtn.TextColor3       = C.White
+	CloseBtn.Font             = Enum.Font.GothamBold
+	CloseBtn.TextSize         = isMobile and 13 or 15
+	CloseBtn.ZIndex           = 6
+	CloseBtn.Parent           = RightPanel
 
-    local KeyIcon = Instance.new("TextLabel")
-    KeyIcon.Size = UDim2.new(0, isMobile and 18 or 25, 0, isMobile and 18 or 25)
-    KeyIcon.Position = UDim2.new(0, isMobile and 8 or 12, 0, isMobile and 6 or 10)
-    KeyIcon.BackgroundTransparency = 1
-    KeyIcon.Text = "🔐"
-    KeyIcon.TextColor3 = Color3.fromRGB(30, 40, 60)
-    KeyIcon.Font = Enum.Font.Gotham
-    KeyIcon.TextSize = isMobile and 14 or 20
-    KeyIcon.Parent = KeyFrame
+	local CBCorner = Instance.new("UICorner")
+	CBCorner.CornerRadius = UDim.new(0, isMobile and 7 or 8)
+	CBCorner.Parent = CloseBtn
 
-    local KeyLabel = Instance.new("TextLabel")
-    KeyLabel.Size = UDim2.new(1, -30, 0, 16)
-    KeyLabel.Position = UDim2.new(0, isMobile and 30 or 42, 0, isMobile and 4 or 8)
-    KeyLabel.BackgroundTransparency = 1
-    KeyLabel.Text = "ENTER YOUR KEY"
-    KeyLabel.TextColor3 = Color3.fromRGB(80, 90, 110)
-    KeyLabel.Font = Enum.Font.GothamBold
-    KeyLabel.TextSize = isMobile and 9 or 12
-    KeyLabel.TextXAlignment = Enum.TextXAlignment.Left
-    KeyLabel.Parent = KeyFrame
+	local KCH = isMobile and 56 or 70
+	local KeyCard = Instance.new("Frame")
+	KeyCard.Size             = UDim2.new(1,-PAD*2,0,KCH)
+	KeyCard.Position         = UDim2.new(0,PAD,0,PAD)
+	KeyCard.BackgroundColor3 = C.G2_Bot
+	KeyCard.BorderSizePixel  = 0
+	KeyCard.ZIndex           = 4
+	KeyCard.Parent           = RightPanel
 
-    local KeyInput = Instance.new("TextBox")
-    KeyInput.Size = UDim2.new(1, -16, 0, isMobile and 28 or 38)
-    KeyInput.Position = UDim2.new(0, 8, 0, isMobile and 32 or 45)
-    KeyInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    KeyInput.BackgroundTransparency = 0.5
-    KeyInput.PlaceholderText = "Paste your key here..."
-    KeyInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 160)
-    KeyInput.Text = ""
-    KeyInput.TextColor3 = Color3.fromRGB(20, 30, 50)
-    KeyInput.Font = Enum.Font.Gotham
-    KeyInput.TextSize = isMobile and 10 or 13
-    KeyInput.ClearTextOnFocus = false
-    KeyInput.Parent = KeyFrame
+	local KCCorner = Instance.new("UICorner")
+	KCCorner.CornerRadius = UDim.new(0, isMobile and 10 or 12)
+	KCCorner.Parent = KeyCard
 
-    local KeyInputCorner = Instance.new("UICorner")
-    KeyInputCorner.CornerRadius = UDim.new(0, isMobile and 6 or 8)
-    KeyInputCorner.Parent = KeyInput
+	local KCGrad = Instance.new("UIGradient")
+	KCGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0,   C.G2_Mid),
+		ColorSequenceKeypoint.new(0.6, C.G2_Bot),
+		ColorSequenceKeypoint.new(1,   C.G4_Mid),
+	})
+	KCGrad.Rotation = 120
+	KCGrad.Parent = KeyCard
 
-    local BottomRow = Instance.new("Frame")
-    BottomRow.Size = UDim2.new(1, -8, 0, isMobile and 60 or 85)
-    BottomRow.Position = UDim2.new(0, 4, 0, isMobile and 245 or 335)
-    BottomRow.BackgroundTransparency = 1
-    BottomRow.Parent = Content
+	local KCIcon = Instance.new("TextLabel")
+	KCIcon.Size               = UDim2.new(0,isMobile and 28 or 36,1,0)
+	KCIcon.Position           = UDim2.new(0,isMobile and 8 or 12,0,0)
+	KCIcon.BackgroundTransparency = 1
+	KCIcon.Text               = "💎"
+	KCIcon.TextSize           = isMobile and 20 or 26
+	KCIcon.Font               = Enum.Font.GothamBold
+	KCIcon.TextColor3         = C.White
+	KCIcon.ZIndex             = 5
+	KCIcon.Parent             = KeyCard
 
-    local SubmitBtn = Instance.new("TextButton")
-    SubmitBtn.Size = UDim2.new(0.5, -3, 0, isMobile and 32 or 40)
-    SubmitBtn.Position = UDim2.new(0, 0, 0, 0)
-    SubmitBtn.BackgroundColor3 = Color3.fromRGB(25, 35, 60)
-    SubmitBtn.Text = "SUBMIT KEY"
-    SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    SubmitBtn.Font = Enum.Font.GothamBold
-    SubmitBtn.TextSize = isMobile and 10 or 13
-    SubmitBtn.Parent = BottomRow
+	local KCTitle = Instance.new("TextLabel")
+	KCTitle.Size               = UDim2.new(1,isMobile and -108 or -134,0,isMobile and 20 or 24)
+	KCTitle.Position           = UDim2.new(0,isMobile and 42 or 54,0,isMobile and 8 or 11)
+	KCTitle.BackgroundTransparency = 1
+	KCTitle.Text               = "LootLabs"
+	KCTitle.TextColor3         = C.White
+	KCTitle.Font               = Enum.Font.GothamBold
+	KCTitle.TextSize           = FS.body
+	KCTitle.TextXAlignment     = Enum.TextXAlignment.Left
+	KCTitle.ZIndex             = 5
+	KCTitle.Parent             = KeyCard
 
-    local SubmitCorner = Instance.new("UICorner")
-    SubmitCorner.CornerRadius = UDim.new(0, isMobile and 6 or 10)
-    SubmitCorner.Parent = SubmitBtn
+	local KCDesc = Instance.new("TextLabel")
+	KCDesc.Size               = UDim2.new(1,isMobile and -108 or -134,0,isMobile and 14 or 18)
+	KCDesc.Position           = UDim2.new(0,isMobile and 42 or 54,0,isMobile and 29 or 37)
+	KCDesc.BackgroundTransparency = 1
+	KCDesc.Text               = "Click to copy key link"
+	KCDesc.TextColor3         = C.TxtLt
+	KCDesc.Font               = Enum.Font.GothamBold
+	KCDesc.TextSize           = FS.small
+	KCDesc.TextXAlignment     = Enum.TextXAlignment.Left
+	KCDesc.ZIndex             = 5
+	KCDesc.Parent             = KeyCard
 
-    local ClearBtn = Instance.new("TextButton")
-    ClearBtn.Size = UDim2.new(0.5, -3, 0, isMobile and 32 or 40)
-    ClearBtn.Position = UDim2.new(0.5, 3, 0, 0)
-    ClearBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    ClearBtn.BackgroundTransparency = 0.3
-    ClearBtn.Text = "CLEAR"
-    ClearBtn.TextColor3 = Color3.fromRGB(100, 80, 80)
-    ClearBtn.Font = Enum.Font.Gotham
-    ClearBtn.TextSize = isMobile and 10 or 13
-    ClearBtn.Parent = BottomRow
+	local GKW = isMobile and 78 or 94
+	local GKH = isMobile and 28 or 34
+	local GetKeyBtn = Instance.new("TextButton")
+	GetKeyBtn.Size             = UDim2.new(0,GKW,0,GKH)
+	GetKeyBtn.Position         = UDim2.new(1,-GKW-(isMobile and 8 or 10),0.5,-GKH/2)
+	GetKeyBtn.BackgroundColor3 = C.White
+	GetKeyBtn.Text             = "GET KEY"
+	GetKeyBtn.TextColor3       = C.G4_Mid
+	GetKeyBtn.Font             = Enum.Font.GothamBold
+	GetKeyBtn.TextSize         = FS.btn
+	GetKeyBtn.ZIndex           = 6
+	GetKeyBtn.Parent           = KeyCard
 
-    local ClearCorner = Instance.new("UICorner")
-    ClearCorner.CornerRadius = UDim.new(0, isMobile and 6 or 10)
-    ClearCorner.Parent = ClearBtn
+	local GKCorner = Instance.new("UICorner")
+	GKCorner.CornerRadius = UDim.new(0, isMobile and 7 or 9)
+	GKCorner.Parent = GetKeyBtn
 
-    local StatusLabel = Instance.new("TextLabel")
-    StatusLabel.Size = UDim2.new(1, 0, 0, 20)
-    StatusLabel.Position = UDim2.new(0, 0, 0, isMobile and 38 or 48)
-    StatusLabel.BackgroundTransparency = 1
-    StatusLabel.Text = "✨ Click GET KEY to start"
-    StatusLabel.TextColor3 = Color3.fromRGB(100, 110, 130)
-    StatusLabel.Font = Enum.Font.Gotham
-    StatusLabel.TextSize = isMobile and 8 or 11
-    StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
-    StatusLabel.Parent = BottomRow
+	local inputY = PAD + KCH + PAD - 2
+	local IRH    = isMobile and 30 or 38
 
-    local DiscordFrame = Instance.new("Frame")
-    DiscordFrame.Size = UDim2.new(1, -8, 0, isMobile and 40 or 60)
-    DiscordFrame.Position = UDim2.new(0, 4, 0, isMobile and 315 or 430)
-    DiscordFrame.BackgroundColor3 = COLORS.Discord.Primary
-    DiscordFrame.BackgroundTransparency = 0.1
-    DiscordFrame.BorderSizePixel = 0
-    DiscordFrame.Parent = Content
+	local InputOutline = Instance.new("Frame")
+	InputOutline.Size             = UDim2.new(1,-PAD*2+4,0,IRH+4)
+	InputOutline.Position         = UDim2.new(0,PAD-2,0,inputY-2)
+	InputOutline.BackgroundColor3 = C.G2_Mid
+	InputOutline.BorderSizePixel  = 0
+	InputOutline.ZIndex           = 3
+	InputOutline.Parent           = RightPanel
 
-    local DiscordCorner = Instance.new("UICorner")
-    DiscordCorner.CornerRadius = UDim.new(0, isMobile and 8 or 12)
-    DiscordCorner.Parent = DiscordFrame
+	local IOCorner = Instance.new("UICorner")
+	IOCorner.CornerRadius = UDim.new(0, isMobile and 10 or 12)
+	IOCorner.Parent = InputOutline
 
-    local DiscordIcon = Instance.new("TextLabel")
-    DiscordIcon.Size = UDim2.new(0, isMobile and 24 or 36, 0, isMobile and 24 or 36)
-    DiscordIcon.Position = UDim2.new(0, isMobile and 10 or 15, 0.5, isMobile and -12 or -18)
-    DiscordIcon.BackgroundTransparency = 1
-    DiscordIcon.Text = "🎮"
-    DiscordIcon.TextColor3 = COLORS.Discord.Text
-    DiscordIcon.Font = Enum.Font.GothamBold
-    DiscordIcon.TextSize = isMobile and 16 or 24
-    DiscordIcon.Parent = DiscordFrame
+	local IOGrad = Instance.new("UIGradient")
+	IOGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0,   C.G2_Mid),
+		ColorSequenceKeypoint.new(0.5, C.G2_Bot),
+		ColorSequenceKeypoint.new(1,   C.G4_Mid),
+	})
+	IOGrad.Rotation = 90
+	IOGrad.Parent = InputOutline
 
-    local DiscordTitle = Instance.new("TextLabel")
-    DiscordTitle.Size = UDim2.new(1, isMobile and -90 or -70, 0, 18)
-    DiscordTitle.Position = UDim2.new(0, isMobile and 45 or 65, 0, isMobile and 6 or 10)
-    DiscordTitle.BackgroundTransparency = 1
-    DiscordTitle.Text = "Join Discord"
-    DiscordTitle.TextColor3 = COLORS.Discord.Text
-    DiscordTitle.Font = Enum.Font.GothamBold
-    DiscordTitle.TextSize = isMobile and 11 or 14
-    DiscordTitle.TextXAlignment = Enum.TextXAlignment.Left
-    DiscordTitle.Parent = DiscordFrame
+	task.spawn(function()
+		local rot = 0
+		while InputOutline and InputOutline.Parent do
+			rot = (rot + 1.5) % 360
+			IOGrad.Rotation = rot
+			task.wait(0.03)
+		end
+	end)
 
-    local DiscordBtn = Instance.new("TextButton")
-    DiscordBtn.Size = UDim2.new(0, isMobile and 70 or 90, 0, isMobile and 28 or 34)
-    DiscordBtn.Position = UDim2.new(1, isMobile and -78 or -102, 0.5, isMobile and -14 or -17)
-    DiscordBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    DiscordBtn.Text = "JOIN"
-    DiscordBtn.TextColor3 = COLORS.Discord.BtnText
-    DiscordBtn.Font = Enum.Font.GothamBold
-    DiscordBtn.TextSize = isMobile and 10 or 12
-    DiscordBtn.Parent = DiscordFrame
+	local InputRow = Instance.new("Frame")
+	InputRow.Size             = UDim2.new(1,-PAD*2,0,IRH)
+	InputRow.Position         = UDim2.new(0,PAD,0,inputY)
+	InputRow.BackgroundColor3 = C.White
+	InputRow.BackgroundTransparency = 0.85
+	InputRow.BorderSizePixel  = 0
+	InputRow.ZIndex           = 4
+	InputRow.Parent           = RightPanel
 
-    local DiscordBtnCorner = Instance.new("UICorner")
-    DiscordBtnCorner.CornerRadius = UDim.new(0, isMobile and 6 or 8)
-    DiscordBtnCorner.Parent = DiscordBtn
+	local IRCorner = Instance.new("UICorner")
+	IRCorner.CornerRadius = UDim.new(0, isMobile and 8 or 10)
+	IRCorner.Parent = InputRow
 
-    local function copyToClipboard(text, btn, originalText, successColor)
-        if setclipboard then
-            setclipboard(text)
-            btn.Text = "✓ COPIED"
-            btn.BackgroundColor3 = successColor
-            StatusLabel.Text = "✅ Link copied! Open in your browser"
-            StatusLabel.TextColor3 = Color3.fromRGB(30, 140, 100)
-            task.wait(2)
-            btn.Text = originalText
-            btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-            StatusLabel.Text = "✨ Click GET KEY to start"
-            StatusLabel.TextColor3 = Color3.fromRGB(100, 110, 130)
-        else
-            StatusLabel.Text = "❌ Clipboard not supported on this device"
-            StatusLabel.TextColor3 = Color3.fromRGB(200, 70, 70)
-        end
-    end
+	local IRGrad = Instance.new("UIGradient")
+	IRGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, C.G2_Bot),
+		ColorSequenceKeypoint.new(1, C.G4_Top),
+	})
+	IRGrad.Rotation = 90
+	IRGrad.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.80),
+		NumberSequenceKeypoint.new(1, 0.87),
+	})
+	IRGrad.Parent = InputRow
 
-    MethodBtn.MouseButton1Click:Connect(function()
-        copyToClipboard(CONFIG.LootLabsURL, MethodBtn, "GET KEY", COLORS.LootLabs.Primary)
-    end)
+	local KeyIconLbl = Instance.new("TextLabel")
+	KeyIconLbl.Size               = UDim2.new(0,isMobile and 26 or 32,1,0)
+	KeyIconLbl.Position           = UDim2.new(0,2,0,0)
+	KeyIconLbl.BackgroundTransparency = 1
+	KeyIconLbl.Text               = "🔐"
+	KeyIconLbl.TextSize           = isMobile and 14 or 18
+	KeyIconLbl.Font               = Enum.Font.GothamBold
+	KeyIconLbl.TextColor3         = C.TxtLt
+	KeyIconLbl.ZIndex             = 5
+	KeyIconLbl.Parent             = InputRow
 
-    DiscordBtn.MouseButton1Click:Connect(function()
-        copyToClipboard(CONFIG.DiscordURL, DiscordBtn, "JOIN", COLORS.Discord.Primary)
-        StatusLabel.Text = "🎮 Discord link copied!"
-        StatusLabel.TextColor3 = Color3.fromRGB(88, 101, 242)
-        task.wait(2.5)
-        StatusLabel.Text = "✨ Click GET KEY to start"
-        StatusLabel.TextColor3 = Color3.fromRGB(100, 110, 130)
-    end)
+	local KeyInput = Instance.new("TextBox")
+	KeyInput.Size               = UDim2.new(1,isMobile and -32 or -40,1,-4)
+	KeyInput.Position           = UDim2.new(0,isMobile and 28 or 36,0,2)
+	KeyInput.BackgroundTransparency = 1
+	KeyInput.PlaceholderText    = "Paste your key here..."
+	KeyInput.PlaceholderColor3  = C.TxtDim
+	KeyInput.Text               = ""
+	KeyInput.TextColor3         = C.White
+	KeyInput.Font               = Enum.Font.GothamBold
+	KeyInput.TextSize           = FS.body
+	KeyInput.ClearTextOnFocus   = false
+	KeyInput.ZIndex             = 5
+	KeyInput.Parent             = InputRow
 
-    ClearBtn.MouseButton1Click:Connect(function()
-        KeyInput.Text = ""
-        StatusLabel.Text = "🗑️ Input cleared"
-        StatusLabel.TextColor3 = Color3.fromRGB(200, 130, 50)
-        task.wait(1.5)
-        StatusLabel.Text = "✨ Click GET KEY to start"
-        StatusLabel.TextColor3 = Color3.fromRGB(100, 110, 130)
-    end)
+	local btnY  = inputY + IRH + (isMobile and 6 or 8)
+	local BtnRow = Instance.new("Frame")
+	BtnRow.Size             = UDim2.new(1,-PAD*2,0,isMobile and 28 or 34)
+	BtnRow.Position         = UDim2.new(0,PAD,0,btnY)
+	BtnRow.BackgroundTransparency = 1
+	BtnRow.ZIndex           = 4
+	BtnRow.Parent           = RightPanel
 
-    task.spawn(function()
-        if isfile and isfile(KEY_FILE) then
-            local success, content = pcall(readfile, KEY_FILE)
-            if success and content and content ~= "" then
-                KeyInput.Text = content
-                StatusLabel.Text = "🔄 Saved Key Deteck"
-                StatusLabel.TextColor3 = Color3.fromRGB(0, 170, 255)
-            end
-        end
-    end)
+	local SubmitBtn = Instance.new("TextButton")
+	SubmitBtn.Size             = UDim2.new(0.56,-3,1,0)
+	SubmitBtn.BackgroundColor3 = C.G2_Mid
+	SubmitBtn.Text             = "✅  SUBMIT KEY"
+	SubmitBtn.TextColor3       = C.White
+	SubmitBtn.Font             = Enum.Font.GothamBold
+	SubmitBtn.TextSize         = FS.btn
+	SubmitBtn.ZIndex           = 5
+	SubmitBtn.Parent           = BtnRow
 
-    SubmitBtn.MouseButton1Click:Connect(function()
-        local userKey = KeyInput.Text:gsub("%s+", "")
-        if userKey == "" then
-            StatusLabel.Text = "❌ Input Key!"
-            StatusLabel.TextColor3 = Color3.fromRGB(200, 70, 70)
-            return
-        end
-        StatusLabel.Text = "🔍 Memverifikasi key..."
-        StatusLabel.TextColor3 = Color3.fromRGB(240, 180, 50)
-        task.spawn(function()
-            if userKey == VALID_KEY then
-                StatusLabel.Text = "✅ Key Valid!"
-                StatusLabel.TextColor3 = Color3.fromRGB(30, 140, 100)
-                saveAuthentication(userKey)
-                task.wait(1)
-                ScreenGui:Destroy()
-                pcall(function()
-                    loadstring(game:HttpGet(CONFIG.MainScriptUrl, true))()
-                end)
-            else
-                StatusLabel.Text = "❌ Wrong Key"
-                StatusLabel.TextColor3 = Color3.fromRGB(200, 70, 70)
-                if isfile and isfile(KEY_FILE) then pcall(delfile, KEY_FILE) end
-                task.wait(2)
-                StatusLabel.Text = "✨ Click GET KEY to start"
-                StatusLabel.TextColor3 = Color3.fromRGB(100, 110, 130)
-            end
-        end)
-    end)
+	local SBCorner = Instance.new("UICorner")
+	SBCorner.CornerRadius = UDim.new(0, isMobile and 7 or 9)
+	SBCorner.Parent = SubmitBtn
 
-    KeyInput.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            SubmitBtn.MouseButton1Click:Fire()
-        end
-    end)
+	local SBGrad = Instance.new("UIGradient")
+	SBGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, C.G2_Mid),
+		ColorSequenceKeypoint.new(1, C.G2_Bot),
+	})
+	SBGrad.Rotation = 90
+	SBGrad.Parent = SubmitBtn
+
+	local ClearBtn = Instance.new("TextButton")
+	ClearBtn.Size             = UDim2.new(0.44,-3,1,0)
+	ClearBtn.Position         = UDim2.new(0.56,3,0,0)
+	ClearBtn.BackgroundColor3 = C.White
+	ClearBtn.BackgroundTransparency = 0.82
+	ClearBtn.Text             = "🗑️  CLEAR"
+	ClearBtn.TextColor3       = C.TxtLt
+	ClearBtn.Font             = Enum.Font.GothamBold
+	ClearBtn.TextSize         = FS.btn
+	ClearBtn.ZIndex           = 5
+	ClearBtn.Parent           = BtnRow
+
+	local CBtnCorner = Instance.new("UICorner")
+	CBtnCorner.CornerRadius = UDim.new(0, isMobile and 7 or 9)
+	CBtnCorner.Parent = ClearBtn
+
+	local botY   = btnY + (isMobile and 28 or 34) + (isMobile and 6 or 8)
+	local BotRow = Instance.new("Frame")
+	BotRow.Size             = UDim2.new(1,-PAD*2,0,isMobile and 32 or 40)
+	BotRow.Position         = UDim2.new(0,PAD,0,botY)
+	BotRow.BackgroundColor3 = C.G4_Top
+	BotRow.BorderSizePixel  = 0
+	BotRow.ZIndex           = 4
+	BotRow.Parent           = RightPanel
+
+	local BotCorner = Instance.new("UICorner")
+	BotCorner.CornerRadius = UDim.new(0, isMobile and 8 or 10)
+	BotCorner.Parent = BotRow
+
+	local BotGrad = Instance.new("UIGradient")
+	BotGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, C.G4_Top),
+		ColorSequenceKeypoint.new(1, C.G4_Mid),
+	})
+	BotGrad.Rotation = 90
+	BotGrad.Parent = BotRow
+
+	local DIcon = Instance.new("TextLabel")
+	DIcon.Size               = UDim2.new(0,isMobile and 26 or 32,1,0)
+	DIcon.Position           = UDim2.new(0,isMobile and 6 or 8,0,0)
+	DIcon.BackgroundTransparency = 1
+	DIcon.Text               = "🎮"
+	DIcon.TextSize           = isMobile and 15 or 19
+	DIcon.Font               = Enum.Font.GothamBold
+	DIcon.TextColor3         = C.White
+	DIcon.ZIndex             = 5
+	DIcon.Parent             = BotRow
+
+	local DTitle = Instance.new("TextLabel")
+	DTitle.Size               = UDim2.new(1,isMobile and -120 or -148,0,isMobile and 14 or 18)
+	DTitle.Position           = UDim2.new(0,isMobile and 36 or 46,0,isMobile and 4 or 5)
+	DTitle.BackgroundTransparency = 1
+	DTitle.Text               = "Join our Discord"
+	DTitle.TextColor3         = C.White
+	DTitle.Font               = Enum.Font.GothamBold
+	DTitle.TextSize           = FS.body
+	DTitle.TextXAlignment     = Enum.TextXAlignment.Left
+	DTitle.ZIndex             = 5
+	DTitle.Parent             = BotRow
+
+	local StatusLabel = Instance.new("TextLabel")
+	StatusLabel.Size               = UDim2.new(1,isMobile and -120 or -148,0,isMobile and 11 or 13)
+	StatusLabel.Position           = UDim2.new(0,isMobile and 36 or 46,0,isMobile and 19 or 23)
+	StatusLabel.BackgroundTransparency = 1
+	StatusLabel.Text               = "✨  Click GET KEY to start"
+	StatusLabel.TextColor3         = C.TxtDim
+	StatusLabel.Font               = Enum.Font.GothamBold
+	StatusLabel.TextSize           = FS.small
+	StatusLabel.TextXAlignment     = Enum.TextXAlignment.Left
+	StatusLabel.ZIndex             = 5
+	StatusLabel.Parent             = BotRow
+
+	local JW = isMobile and 60 or 76
+	local JH = isMobile and 22 or 28
+	local JoinBtn = Instance.new("TextButton")
+	JoinBtn.Size             = UDim2.new(0,JW,0,JH)
+	JoinBtn.Position         = UDim2.new(1,-JW-(isMobile and 6 or 8),0.5,-JH/2)
+	JoinBtn.BackgroundColor3 = C.White
+	JoinBtn.Text             = "JOIN"
+	JoinBtn.TextColor3       = C.G4_Top
+	JoinBtn.Font             = Enum.Font.GothamBold
+	JoinBtn.TextSize         = FS.btn
+	JoinBtn.ZIndex           = 6
+	JoinBtn.Parent           = BotRow
+
+	local JCorner = Instance.new("UICorner")
+	JCorner.CornerRadius = UDim.new(0, isMobile and 6 or 8)
+	JCorner.Parent = JoinBtn
+
+	local centerPos = UDim2.new(0.5,-W/2,0.5,-H/2)
+	Container.Position          = UDim2.new(0.5,-W/2,0.65,-H/2)
+	Container.BackgroundTransparency = 1
+	Outline.Position            = UDim2.new(0.5,-(W/2)-BP,0.65,-(H/2)-BP)
+	Outline.BackgroundTransparency = 1
+
+	local inTI = TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+	TweenService:Create(Container, inTI, { Position=centerPos, BackgroundTransparency=0 }):Play()
+	TweenService:Create(Outline, inTI, {
+		Position = UDim2.new(0.5,-(W/2)-BP,0.5,-(H/2)-BP),
+		BackgroundTransparency = 0,
+	}):Play()
+
+	task.spawn(function()
+		local idx = 1
+		while Outline and Outline.Parent do
+			local nxt = (idx % #CYCLE) + 1
+			local ti  = TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+			TweenService:Create(Outline,       ti, { BackgroundColor3 = CYCLE[nxt] }):Play()
+			TweenService:Create(Divider,       ti, { BackgroundColor3 = CYCLE[nxt] }):Play()
+			TweenService:Create(ToggleOutline, ti, { BackgroundColor3 = CYCLE[nxt] }):Play()
+			TweenService:Create(ToggleBtn,     ti, { BackgroundColor3 = CYCLE[nxt] }):Play()
+			DivGrad.Rotation = (DivGrad.Rotation + 15) % 360
+			idx = nxt
+			task.wait(1.2)
+		end
+	end)
+
+	local function addHover(btn, dt, ht)
+		local os, op = btn.Size, btn.Position
+		btn.MouseEnter:Connect(function()
+			TweenService:Create(btn, TweenInfo.new(0.14, Enum.EasingStyle.Quad), {
+				BackgroundTransparency = ht,
+				Size     = UDim2.new(os.X.Scale,os.X.Offset+2,os.Y.Scale,os.Y.Offset+2),
+				Position = UDim2.new(op.X.Scale,op.X.Offset-1,op.Y.Scale,op.Y.Offset-1),
+			}):Play()
+		end)
+		btn.MouseLeave:Connect(function()
+			TweenService:Create(btn, TweenInfo.new(0.14, Enum.EasingStyle.Quad), {
+				BackgroundTransparency = dt, Size=os, Position=op,
+			}):Play()
+		end)
+	end
+
+	addHover(GetKeyBtn, 0,    0.08)
+	addHover(SubmitBtn, 0,    0.07)
+	addHover(JoinBtn,   0,    0.08)
+	addHover(ClearBtn,  0.82, 0.70)
+	addHover(ToggleBtn, 0,    0.10)
+
+	local isVisible = true
+	ToggleBtn.MouseButton1Click:Connect(function()
+		isVisible = not isVisible
+		if isVisible then
+			Container.Position = UDim2.new(0.5,-W/2,0.65,-H/2)
+			Outline.Position   = UDim2.new(0.5,-(W/2)-BP,0.65,-(H/2)-BP)
+			local ti = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+			TweenService:Create(Container, ti, { Position=centerPos, BackgroundTransparency=0 }):Play()
+			TweenService:Create(Outline, ti, {
+				Position = UDim2.new(0.5,-(W/2)-BP,0.5,-(H/2)-BP),
+				BackgroundTransparency = 0,
+			}):Play()
+			ToggleBtn.Text = "🔑"
+		else
+			local ti = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+			TweenService:Create(Container, ti, {
+				Position = UDim2.new(0.5,-W/2,1.3,-H/2), BackgroundTransparency=1
+			}):Play()
+			TweenService:Create(Outline, ti, {
+				Position = UDim2.new(0.5,-(W/2)-BP,1.3,-(H/2)-BP), BackgroundTransparency=1
+			}):Play()
+			ToggleBtn.Text = "👁"
+		end
+	end)
+
+	CloseBtn.MouseButton1Click:Connect(function()
+		local ti = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+		TweenService:Create(Container, ti, {
+			Position = UDim2.new(0.5,-W/2,1.3,-H/2), BackgroundTransparency=1
+		}):Play()
+		TweenService:Create(Outline, ti, {
+			Position = UDim2.new(0.5,-(W/2)-BP,1.3,-(H/2)-BP), BackgroundTransparency=1
+		}):Play()
+		TweenService:Create(ToggleHolder,  ti, { BackgroundTransparency=1 }):Play()
+		TweenService:Create(ToggleOutline, ti, { BackgroundTransparency=1 }):Play()
+		task.wait(0.35)
+		ScreenGui:Destroy()
+	end)
+
+	local function copyLink(url, btn, origColor)
+		if setclipboard then
+			setclipboard(url)
+			local prev = btn.Text
+			btn.Text       = "✓ COPIED"
+			btn.TextColor3 = C.OK
+			StatusLabel.Text       = "✅  Link copied! Open in browser"
+			StatusLabel.TextColor3 = C.OK
+			task.wait(2)
+			btn.Text       = prev
+			btn.TextColor3 = origColor
+			StatusLabel.Text       = "✨  Click GET KEY to start"
+			StatusLabel.TextColor3 = C.TxtDim
+		else
+			StatusLabel.Text       = "❌  Clipboard not supported"
+			StatusLabel.TextColor3 = C.Err
+		end
+	end
+
+	GetKeyBtn.MouseButton1Click:Connect(function()
+		copyLink(CONFIG.LootLabsURL, GetKeyBtn, C.G4_Mid)
+	end)
+
+	JoinBtn.MouseButton1Click:Connect(function()
+		copyLink(CONFIG.DiscordURL, JoinBtn, C.G4_Top)
+		StatusLabel.Text       = "🎮  Discord link copied!"
+		StatusLabel.TextColor3 = C.G2_Bot
+		task.wait(2.5)
+		StatusLabel.Text       = "✨  Click GET KEY to start"
+		StatusLabel.TextColor3 = C.TxtDim
+	end)
+
+	ClearBtn.MouseButton1Click:Connect(function()
+		KeyInput.Text          = ""
+		StatusLabel.Text       = "🗑️  Input cleared"
+		StatusLabel.TextColor3 = C.Warn
+		task.wait(1.5)
+		StatusLabel.Text       = "✨  Click GET KEY to start"
+		StatusLabel.TextColor3 = C.TxtDim
+	end)
+
+	task.spawn(function()
+		if isfile and isfile(KEY_FILE) then
+			local ok, content = pcall(readfile, KEY_FILE)
+			if ok and content and content ~= "" then
+				KeyInput.Text          = content
+				StatusLabel.Text       = "🔄  Saved key detected"
+				StatusLabel.TextColor3 = Color3.fromRGB(0,200,255)
+			end
+		end
+	end)
+
+	SubmitBtn.MouseButton1Click:Connect(function()
+		local userKey = KeyInput.Text:gsub("%s+","")
+		if userKey == "" then
+			StatusLabel.Text       = "❌  Please enter a key!"
+			StatusLabel.TextColor3 = C.Err
+			return
+		end
+		StatusLabel.Text       = "🔍  Verifying..."
+		StatusLabel.TextColor3 = C.Warn
+
+		task.spawn(function()
+			if userKey == VALID_KEY then
+				saveAuthentication(userKey)
+				StatusLabel.Text       = "✅  Key Valid!"
+				StatusLabel.TextColor3 = C.OK
+				local ti = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+				TweenService:Create(Container, ti, { BackgroundTransparency=1 }):Play()
+				TweenService:Create(Outline,   ti, { BackgroundTransparency=1 }):Play()
+				task.wait(0.45)
+				ScreenGui:Destroy()
+				pcall(function()
+					loadstring(game:HttpGet(CONFIG.MainScriptUrl, true))()
+				end)
+			else
+				StatusLabel.Text       = "❌  Wrong key. Try again."
+				StatusLabel.TextColor3 = C.Err
+				local origPos = InputRow.Position
+				for i = 1, 4 do
+					TweenService:Create(InputRow, TweenInfo.new(0.05,Enum.EasingStyle.Quad), {
+						Position = UDim2.new(origPos.X.Scale, origPos.X.Offset+(i%2==0 and 5 or -5),
+						                     origPos.Y.Scale, origPos.Y.Offset)
+					}):Play()
+					task.wait(0.05)
+				end
+				TweenService:Create(InputRow, TweenInfo.new(0.08,Enum.EasingStyle.Quad), {
+					Position = origPos
+				}):Play()
+				if isfile and isfile(KEY_FILE) then pcall(delfile, KEY_FILE) end
+				task.wait(2)
+				StatusLabel.Text       = "✨  Click GET KEY to start"
+				StatusLabel.TextColor3 = C.TxtDim
+			end
+		end)
+	end)
+
+	KeyInput.FocusLost:Connect(function(enterPressed)
+		if enterPressed then SubmitBtn.MouseButton1Click:Fire() end
+	end)
 end
 
-createSingleKeySystemGUI()
+createGUI()
