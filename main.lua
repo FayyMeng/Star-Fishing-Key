@@ -3,7 +3,7 @@ local TweenService = game:GetService("TweenService")
 local UIS          = game:GetService("UserInputService")
 local LocalPlayer  = Players.LocalPlayer or {UserId = 0}
 
-local ENCODED_KEY = { 295,466,421,391,394,391,430,250,250,256 }
+local ENCODED_KEY = { 310,415,445,412,349,448,391,442 }
 
 local function getValidKey()
 	local key = ""
