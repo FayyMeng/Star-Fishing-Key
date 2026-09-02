@@ -1,4 +1,3 @@
-
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
@@ -10779,10 +10778,6 @@ do
             end,
         })
 
-        PickupBox:Paragraph({
-            Title = "Note",
-            Desc = "Drop or pick up inventory crystals.",
-        })
 
         local function _parseNum(text)
             if type(text) == "table" then text = text.Text or text.Value or text[1] or "0" end
@@ -17517,10 +17512,6 @@ local function install()
             end)
         end
 
-        PlotBox:Paragraph({
-            Title = "Place & Pickup Runes",
-            Desc = "Manage runes on your plot.",
-        })
 
         PlotBox:Dropdown({
             Title = "Select Runes to Place",
@@ -19616,6 +19607,7 @@ local function destroyHideButton()
         local current = config.current
         local button = config.button
         local onPick = config.onPick
+        local labelMap = type(config.labelMap) == "table" and config.labelMap or nil
         if not button or not button.Parent or not panelGui then
             return nil
         end
@@ -19733,16 +19725,25 @@ local function destroyHideButton()
         end
 
         for i, option in ipairs(options) do
+            local optStr = tostring(option)
+            -- Tampilkan nama bomb di bawah nama vein (kecuali Smart)
+            local subLabel = labelMap and labelMap[optStr]
+            local displayText = optStr
+            if subLabel and subLabel ~= optStr and optStr ~= "Smart" then
+                displayText = optStr .. "\n[" .. subLabel .. "]"
+            end
+
             local item = Instance.new("TextButton")
             item.Name = "Option_" .. tostring(i)
-            item.Size = UDim2.new(1, 0, 0, ROW_H)
+            item.Size = subLabel and UDim2.new(1, 0, 0, 36) or UDim2.new(1, 0, 0, ROW_H)
             item.BackgroundColor3 = Color3.fromRGB(32, 42, 64)
             item.BorderSizePixel = 0
             item.AutoButtonColor = false
             item.Font = THEME.fontBody
             item.TextSize = 11
             item.TextColor3 = THEME.text
-            item.Text = tostring(option)
+            item.Text = displayText
+            item.TextWrapped = true
             item.LayoutOrder = i
             item.ZIndex = 403
             item.Active = true
@@ -20572,6 +20573,185 @@ local function destroyHideButton()
                 applyEspMode(nil)
             end)
 
+            -- ESP by Mutations selector
+            local espMutationNames = { "All", "Verdant", "Voltaic", "Gilded", "Onyx", "Terminus", "Frost", "Dustworn", "Molten", "Bloodmoon", "Lucky", "Fire", "Thunder", "Starfall", "Aurora", "Radioactive", "Poison", "Wet" }
+            table.sort(espMutationNames, function(a, b)
+                if a == "All" then return true end
+                if b == "All" then return false end
+                local av = tonumber(MUTATION_LUCK[a]) or 0
+                local bv = tonumber(MUTATION_LUCK[b]) or 0
+                if av == bv then return a < b end
+                return av > bv
+            end)
+            S._scEsp = S._scEsp or {}
+            if not S._scEsp.mutations then S._scEsp.mutations = { All = true } end
+
+            local selectedEspMutation = "All"
+            if type(S._scEsp.mutations) == "table" and not S._scEsp.mutations.All then
+                for k, v in pairs(S._scEsp.mutations) do
+                    if v == true then selectedEspMutation = tostring(k) break end
+                end
+            end
+
+            local espMutWrap = Instance.new("Frame")
+            espMutWrap.Name = "EspMutationSelector"
+            espMutWrap.Size = UDim2.new(1, 0, 0, 40)
+            espMutWrap.BackgroundTransparency = 1
+            espMutWrap.ClipsDescendants = false
+            espMutWrap.Parent = featureHost
+
+            local espMutBtn = Instance.new("TextButton")
+            espMutBtn.Size = UDim2.new(1, 0, 0, 34)
+            espMutBtn.BackgroundColor3 = Color3.fromRGB(28, 36, 58)
+            espMutBtn.BorderSizePixel = 0
+            espMutBtn.Font = Enum.Font.GothamBold
+            espMutBtn.TextSize = 12
+            espMutBtn.TextColor3 = Color3.fromRGB(240, 245, 255)
+            espMutBtn.Text = "Mutation: " .. selectedEspMutation
+            espMutBtn.AutoButtonColor = false
+            espMutBtn.ZIndex = 20
+            espMutBtn.Parent = espMutWrap
+            Instance.new("UICorner", espMutBtn).CornerRadius = UDim.new(0, 8)
+            addStroke(espMutBtn, THEME.strokeSoft, 1, 0.35)
+
+            local espMutPanel = Instance.new("Frame")
+            espMutPanel.Name = "EspMutationSidePanel"
+            espMutPanel.Size = UDim2.fromOffset(190, 142)
+            espMutPanel.BackgroundColor3 = THEME.bgDeep
+            espMutPanel.BorderSizePixel = 0
+            espMutPanel.Visible = false
+            espMutPanel.ZIndex = 300
+            espMutPanel.Parent = panelGui
+            addCorner(espMutPanel, UDim.new(0, 12))
+            addStroke(espMutPanel, THEME.stroke, 1.2, 0.2)
+            shortcutPopups[#shortcutPopups + 1] = espMutPanel
+
+            local espMutTitle = Instance.new("TextLabel")
+            espMutTitle.BackgroundTransparency = 1
+            espMutTitle.Position = UDim2.fromOffset(12, 8)
+            espMutTitle.Size = UDim2.new(1, -24, 0, 22)
+            espMutTitle.Font = Enum.Font.GothamBold
+            espMutTitle.TextSize = 13
+            espMutTitle.TextColor3 = THEME.text
+            espMutTitle.TextXAlignment = Enum.TextXAlignment.Left
+            espMutTitle.Text = "ESP Mutation Filter"
+            espMutTitle.ZIndex = 301
+            espMutTitle.Parent = espMutPanel
+
+            local espMutValue = Instance.new("TextLabel")
+            espMutValue.BackgroundTransparency = 1
+            espMutValue.Position = UDim2.fromOffset(12, 29)
+            espMutValue.Size = UDim2.new(1, -24, 0, 18)
+            espMutValue.Font = Enum.Font.Gotham
+            espMutValue.TextSize = 10
+            espMutValue.TextColor3 = THEME.textDim
+            espMutValue.TextXAlignment = Enum.TextXAlignment.Left
+            espMutValue.Text = "Selected: " .. selectedEspMutation
+            espMutValue.ZIndex = 301
+            espMutValue.Parent = espMutPanel
+
+            local espMutList = Instance.new("ScrollingFrame")
+            espMutList.Name = "EspMutationList"
+            espMutList.Position = UDim2.fromOffset(8, 50)
+            espMutList.Size = UDim2.fromOffset(174, 84)
+            espMutList.BackgroundColor3 = Color3.fromRGB(20, 26, 40)
+            espMutList.BorderSizePixel = 0
+            espMutList.ScrollBarThickness = 4
+            espMutList.ScrollBarImageColor3 = THEME.accentC
+            espMutList.ScrollingDirection = Enum.ScrollingDirection.Y
+            espMutList.CanvasSize = UDim2.fromOffset(0, 0)
+            espMutList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+            espMutList.Active = true
+            espMutList.ZIndex = 1002
+            espMutList.Parent = espMutPanel
+            addCorner(espMutList, UDim.new(0, 8))
+            addStroke(espMutList, THEME.strokeSoft, 1, 0.3)
+            Instance.new("UIListLayout", espMutList).Padding = UDim.new(0, 3)
+            local espMutPad = Instance.new("UIPadding", espMutList)
+            espMutPad.PaddingTop = UDim.new(0, 4)
+            espMutPad.PaddingBottom = UDim.new(0, 4)
+            espMutPad.PaddingLeft = UDim.new(0, 4)
+            espMutPad.PaddingRight = UDim.new(0, 4)
+
+            local espMutOpen = false
+            local function placeEspMutPanel()
+                if not espMutPanel or not espMutPanel.Parent then return end
+                local pos = espMutBtn.AbsolutePosition
+                local size = espMutBtn.AbsoluteSize
+                local cam = Workspace.CurrentCamera
+                local vp = cam and cam.ViewportSize or Vector2.new(800, 600)
+                local pw, ph = 190, 142
+                local x = pos.X + size.X + 8
+                if x + pw > vp.X - 6 then x = pos.X - pw - 8 end
+                if x < 6 then x = math.clamp(pos.X + size.X + 8, 6, math.max(6, vp.X - pw - 6)) end
+                local y = math.clamp(pos.Y, 6, math.max(6, vp.Y - ph - 6))
+                espMutPanel.Position = UDim2.fromOffset(x, y)
+            end
+            local function setEspMutOpen(v)
+                espMutOpen = v == true
+                if espMutOpen then
+                    for _, other in ipairs(shortcutPopups) do
+                        if other and other ~= espMutPanel then
+                            pcall(function() other.Visible = false end)
+                        end
+                    end
+                    espMutList.CanvasPosition = Vector2.new(0, 0)
+                    placeEspMutPanel()
+                    espMutPanel.Visible = true
+                else
+                    espMutPanel.Visible = false
+                end
+            end
+
+            for i, mutName in ipairs(espMutationNames) do
+                local row = Instance.new("TextButton")
+                row.Name = "EspMut_" .. tostring(i)
+                row.Size = UDim2.new(1, 0, 0, 26)
+                row.BackgroundColor3 = Color3.fromRGB(32, 42, 64)
+                row.BorderSizePixel = 0
+                row.AutoButtonColor = false
+                row.Font = Enum.Font.GothamMedium
+                row.TextSize = 10
+                row.TextColor3 = Color3.fromRGB(230, 235, 255)
+                row.Text = mutName
+                row.LayoutOrder = i
+                row.ZIndex = 1003
+                row.Active = true
+                row.Parent = espMutList
+                Instance.new("UICorner", row).CornerRadius = UDim.new(0, 5)
+                row.MouseEnter:Connect(function() row.BackgroundColor3 = Color3.fromRGB(42, 54, 80) end)
+                row.MouseLeave:Connect(function() row.BackgroundColor3 = Color3.fromRGB(32, 42, 64) end)
+                trackConn(row.MouseButton1Click:Connect(function()
+                    selectedEspMutation = mutName
+                    espMutValue.Text = "Selected: " .. mutName
+                    espMutBtn.Text = "Mutation: " .. mutName
+                    -- Apply ke S.mutationFilter supaya ESP crystal pakai filter ini
+                    if mutName == "All" then
+                        S._scEsp.mutations = { All = true }
+                        S.mutationFilter = { All = true }
+                    else
+                        S._scEsp.mutations = { [mutName] = true }
+                        S.mutationFilter = { [mutName] = true }
+                    end
+                    setEspMutOpen(false)
+                    -- Refresh ESP
+                    pcall(function()
+                        if FM.updateTracking then FM.updateTracking() end
+                        if FM.requestRefresh then FM.requestRefresh() end
+                    end)
+                end))
+            end
+            trackConn(espMutBtn.MouseButton1Click:Connect(function() setEspMutOpen(not espMutOpen) end))
+            trackConn(espMutBtn:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+                if espMutOpen then placeEspMutPanel() end
+            end))
+            trackConn(espMutBtn:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+                if espMutOpen then placeEspMutPanel() end
+            end))
+            task.defer(function()
+                if espMutPanel and espMutPanel.Parent then placeEspMutPanel() end
+            end)
+
             pcall(function() if stopTopEsp then stopTopEsp() end end)
             S.topEspMode = nil
 
@@ -20802,6 +20982,28 @@ if name == "ESP Boulder" then
             end
             veinNames = mergedVeinNames
 
+            -- Cari nama bomb yang dipakai tiap vein (kecuali Smart)
+            local veinBombLabel = {}
+            do
+                local ok2, bombNames2 = pcall(function() return type(FM.getBombVeinNames) == "function" and FM.getBombVeinNames() or {} end)
+                local blist = (ok2 and type(bombNames2) == "table") and bombNames2 or {}
+                for _, vn in ipairs(veinNames) do
+                    if tostring(vn) ~= "Smart" then
+                        -- Cari di VEIN_PRESETS nama bomb yang dipakai
+                        local bombNameForVein = nil
+                        if type(blist) == "table" then
+                            for _, bn in ipairs(blist) do
+                                if tostring(bn) == tostring(vn) then
+                                    bombNameForVein = tostring(bn)
+                                    break
+                                end
+                            end
+                        end
+                        veinBombLabel[tostring(vn)] = bombNameForVein
+                    end
+                end
+            end
+
             local rowDrop = Instance.new("Frame")
             rowDrop.Size = UDim2.new(1, -8, 0, 42)
             rowDrop.BackgroundTransparency = 1
@@ -20837,6 +21039,7 @@ if name == "ESP Boulder" then
                 options = veinNames,
                 current = selectedVein,
                 button = veinBtn,
+                labelMap = veinBombLabel,  -- nama bomb per vein, ditampilkan di list (kecuali Smart)
                 onPick = function(v)
                     selectedVein = v
                     S._shortcutThrowVein = v
@@ -24778,10 +24981,6 @@ task.defer(function()
         Box:Section({ Title = "Suggestions", TextSize = 17 })
     end)
 
-    Box:Paragraph({
-        Title = "Suggestions",
-        Desc = "Send a feature suggestion.",
-    })
 
     Box:Input({
         Title = "Your Suggestion",
@@ -25102,12 +25301,7 @@ task.defer(function()
                 end
             end,
         })
-
-        MBox:Paragraph({
-            Title = "Pickup Filter",
-            Desc = "Crystal filters are in the Pickup tab under Auto Pickup Crystal.",
-        })
-    end
+end 
 
     local VBox = Tabs and Tabs.vein
     if VBox and FM.VeinPickupSystem then
@@ -25442,4 +25636,3 @@ task.defer(function()
     }
     print("[Config] ConfigManager ready — Delete + deferred AutoLoad")
 end)
-
